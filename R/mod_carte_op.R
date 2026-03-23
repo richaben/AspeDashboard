@@ -173,6 +173,30 @@ mod_carte_op_server <- function(id, departement, bassin, periode, variable, espe
                     dplyr::select(pop_id),
                 .,
                 by = "pop_id"
+            ) %>%
+            dplyr::mutate(
+                hover = paste0(
+                    "<b>", sta_libelle_sandre, " (", sta_code_sandre, ")</b><br>",
+                    "<em>", dept_libelle, " (", reg_libelle, ")</em><br>",
+                    nb_annees, " année",
+                    ifelse(as.numeric(nb_annees) > 1 , "s", ""),
+                    ifelse(variable == "distribution",
+                           paste0(" de détection (sur ", nb_annees_tot, ")"),
+                           " de suivi"
+                           ),
+                    "<br>",
+                    dplyr::case_when(
+                        variable == "especes" ~ paste0(
+                            valeur, " espèce",
+                            ifelse(as.numeric(valeur) > 1, "s", "")
+                            ),
+                        variable == "ipr" ~ paste0(valeur, " état"),
+                        variable == "distribution" ~ paste0("Densité moyenne quand capturée: ", valeur)
+                        ),
+                    ifelse(variable == "distribution", "",
+                           paste0(" (", annee, ")")
+                           )
+                    )
             )
 
         updateSelectizeInput(
@@ -202,8 +226,14 @@ mod_carte_op_server <- function(id, departement, bassin, periode, variable, espe
 
         popups <- switch(
             variable(),
-            especes = unname(popups_especes$popups[DataMap$pop_id]),
-            ipr = unname(popups_ipr$popups[DataMap$pop_id]),
+            especes = paste0(
+                '<iframe src="www/widgets/especes/file_', DataMap$pop_id, '.html" ',
+                'width="419px" height="538px" frameborder="0"></iframe>'
+            ),
+            ipr = paste0(
+                '<iframe src="www/widgets/ipr/file_', DataMap$pop_id, '.html" ',
+                'width="419px" height="538px" frameborder="0"></iframe>'
+            ),
             distribution = NULL
         )
         
@@ -228,7 +258,11 @@ mod_carte_op_server <- function(id, departement, bassin, periode, variable, espe
                 opacity = ~identity(opacite),
                 fillOpacity = .75,
                 label = ~lapply(hover, shiny::HTML),
-                popup = popups
+                popup = popups,
+                popupOptions = leaflet::popupOptions(
+                    maxWidth = 400,
+                    minWidth = 300
+                )
             ) 
         }
         

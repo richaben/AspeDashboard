@@ -10,7 +10,8 @@ if (!require("pak")) install.packages("pak")
 pak::pkg_install(c(
     "CedricMondy/AspeDashboard",
     "PascalIrz/aspe",
-    "httr", "sf", "rmapshaper", "dplyr", "purrr", "usethis", "stringr", "progress", "lubridate", "tidyr",
+    "MaelTheuliere/COGiter",
+    "httr", "sf", "rmapshaper", "dplyr", "purrr", "usethis", "stringr", "progress", "lubridate", "tidyr", "hubeau",
     "ggplot2", "cowplot", "ggiraph", "leaflet", "ows4R"
 ))
 
@@ -18,13 +19,15 @@ source("https://raw.githubusercontent.com/CedricMondy/utils_unpackaged/main/R/ge
 
 library(aspe)
 
+download_sandre <- FALSE
+download_hubeau <- TRUE
 generer_popups <- TRUE
 ```
 
 
 # Données complémentaires
 
-```{r, eval=FALSE}
+```{r}
 get_sandre_layers <- function(sandre_url = "https://services.sandre.eaufrance.fr/geo/sandre") {
    client_sandre <- ows4R::WFSClient$new(
         sandre_url,
@@ -54,7 +57,8 @@ read_sandre_wfs <- function(layer, crs, sandre_url = "https://services.sandre.ea
 
 # get_sandre_layers()
 
-## Découpage hydrographique
+if (download_sandre) {
+  ## Découpage hydrographique
 sh_geo <- read_sandre_wfs(
     layer = "sa:SecteurHydro_FXX_Carthage2017",
     crs = 2154
@@ -70,9 +74,7 @@ dh_geo <- read_sandre_wfs(
 )
 
 save(sh_geo, rh_geo, dh_geo, file = "data_sandre.rda")
-```
-
-```{r}
+}
 load("data_sandre.rda")
 ```
 
@@ -109,7 +111,8 @@ Les données utilisées sont celles mises à disposition par l'API "poissons" de
 
 
 ```{r}
-get_data_poissons <- function(endpoint, stations = NULL, ...) {
+get_data_poissons <- function(endpoint, stations = NULL, ..., ntry_max = 25) {
+  cat("\n#", endpoint, file = "log")
     fn <- get(paste0("get_poisson_", endpoint), envir = asNamespace("hubeau"))
     
     results <- try({
@@ -117,10 +120,9 @@ get_data_poissons <- function(endpoint, stations = NULL, ...) {
     })
     
     if (inherits(results, "try-error")) {
-        message("Données trop volumineuses pour être récupérées en une fois. Récupération des données station par station")
 
         if (is.null(stations)) {
-            stations <- hubeau::get_poisson_stations() |>
+            stations <- hubeau::get_poisson_stations(...) |>
                 dplyr::filter(!is.na(code_station)) |>
                 dplyr::pull(code_station)
         }
@@ -129,59 +131,147 @@ get_data_poissons <- function(endpoint, stations = NULL, ...) {
         
         results <- purrr::map(
             stations,
-            .f = function(x) {
-                n_try = 1
-
-                results_x <- try({fn(
-                    code_station = x
-                )})
-                while (inherits(results_x, "try-error") & n_try < 10) {
-                    results_x <- try({fn(
-                    code_station = x
-                )})
-                n_try = n_try + 1
-                }
-
-                if (inherits(results_x, "try-error")) {
-                    message("    Erreur lors de la récupération des données pour la station ", x, " après ", n_try, " tentatives")
-                    results_x <- NULL
-                }
-                
-                results_x
-            },
+            .f = function(sta) {
+              cat("\nstation ", sta, file = "log", append = TRUE)
+              operations <- try({hubeau::get_poisson_operations(code_station = sta, ...)})
+              while(inherits(operations, "try-error"))
+                operations <- try({hubeau::get_poisson_operations(code_station = sta, ...)})
+              
+              if (endpoint == "operations") {
+                results_sta <- operations
+                cat("  OK", file = "log", append = TRUE)
+              } else {
+                results_sta <- purrr::map(
+                  unique(operations$code_operation),
+                  .f = function(op) {
+                    cat("\n    operation ", op, file = "log", append = TRUE)
+                    n_try = 1
+                    
+                    results_op <- try({fn(code_operation = op)})
+                    
+                    while (inherits(results_op, "try-error") & n_try < ntry_max) {
+                      results_op <- try({fn(code_operation = op)})
+                      n_try = n_try + 1
+                      }
+                    
+                    if (inherits(results_op, "try-error")) {
+                      message("    Erreur lors de la récupération des données pour l'opération ", op, " après ", n_try, " tentatives")
+                      results_op <- NULL
+                      cat("  KO", file = "log", append = TRUE)
+                    } else {
+                    cat("  OK", file = "log", append = TRUE)
+                  }
+                  results_op
+                  }
+                ) |> 
+                  purrr::list_rbind()
+              }
+              results_sta
+              },
             .progress = TRUE
         ) |>
         purrr::list_rbind()
     }
-
+    
     results
 }
 ```
 On ne conserve que les opérations réalisées sur des stations avec un code Sandre, pour lesquelles le niveau de qualification est "correct" et correspondant à des protocoles permettant d'avoir une vision peuplement (les protocoles ciblant des espèces particulières ne sont pas conservés). 
 
+
+**Idealement: Un gros téléchargement avec l'ensemble des données en sauvant la date de l'export, puis régulièrement récupère que les données dont la date de modification des opérations est postérieure à la date d'export**
+
 ```{r}
-date_export <- Sys.Date()
-# departements <- "78"
+if (file.exists("data_hubeau.rda")) {
+    load("data_hubeau.rda")
+}
+  
 
-operations <- get_data_poissons(endpoint = "operations") |>
-    dplyr::filter(
-        libelle_qualification_operation == "Correcte",
-        protocole_peche %in% c(
-            "Pêche complète à un ou plusieurs passages",
-            "Pêche par ambiances",
-            "Pêche partielle par points (grand milieu)",
-            "Pêche partielle sur berge"
-        ),
-        !is.na(code_station)
+if (download_hubeau) {
+  dept_test <- NULL # change for a small department (e.g. 93) for code test
+
+  if (exists("date_export")) {
+    new_operations <- get_data_poissons(
+      endpoint = "operations",
+      date_modification_operation_min = date_export, code_departement = dept_test,
+      fields = "code_operation,code_station,date_operation,code_point_prelevement_aspe,libelle_station,protocole_peche,surface_calculee,coordonnee_x_point_prelevement,coordonnee_y_point_prelevement,code_epsg_projection_point_prelevement,libelle_qualification_operation"
+      )
+  } else {
+    date_export <- Sys.Date()
+    new_operations <- get_data_poissons(
+      endpoint = "operations", 
+      code_departement = dept_test,
+      fields = "code_operation,code_station,date_operation,code_point_prelevement_aspe,libelle_station,protocole_peche,surface_calculee,coordonnee_x_point_prelevement,coordonnee_y_point_prelevement,code_epsg_projection_point_prelevement,libelle_qualification_operation"
+      )
+  }
+  
+  if (nrow(new_operations) > 0) {
+    new_operations <-  new_operations |>
+      dplyr::filter(
+          libelle_qualification_operation == "Correcte",
+          protocole_peche %in% c(
+              "Pêche complète à un ou plusieurs passages",
+              "Pêche par ambiances",
+              "Pêche partielle par points (grand milieu)",
+              "Pêche partielle sur berge"
+          ),
+          !is.na(code_station)
+      )
+  
+  new_stations <- hubeau::get_poisson_stations(
+    code_departement = dept_test,
+    fields = "code_station,libelle_station"
+    ) |>
+      dplyr::filter(code_station %in% new_operations$code_station)
+  
+  new_indicateurs <- get_data_poissons(
+    endpoint = "indicateurs", 
+    stations = unique(new_operations$code_station), 
+    code_departement = dept_test,
+    fields = "code_operation,code_station,libelle_station,code_point_prelevement_aspe,date_operation,ipr_note,ipr_libelle_classe,ipr_altitude,code_departement,ipr_nte,ipr_ner,ipr_nel,ipr_dit,ipr_dii,ipr_dio,ipr_dti"
     )
+  
+  new_observations <- get_data_poissons(
+    endpoint = "observations",
+    stations = unique(new_operations$code_station), 
+    code_departement = dept_test,
+    fields = "code_operation,code_alternatif_taxon,effectif_lot"
+    ) |>
+      dplyr::filter(!is.na(code_alternatif_taxon))
+  
+  if (exists("operations")) {
+    stations <- stations |> 
+      dplyr::filter(! code_station %in% new_stations$code_station) |> 
+      dplyr::bind_rows(new_stations)
+    
+    operations <- operations |> 
+      dplyr::filter(!code_operation %in% new_operations$code_operation) |> 
+      dplyr::bind_rows(new_operations)
+    
+    indicateurs <- indicateurs |> 
+      dplyr::filter(!code_operation %in% new_operation$code_operation) |> 
+      dplyr::bind_rows(new_indicateurs)
+    
+    observations <- indicateurs |> 
+      dplyr::filter(!code_operation %in% new_operations$code_operation) |> 
+      dplyr::bind_rows(new_observations)
+    
+    
+  } else {
+    stations <- new_stations
+    operations <- new_operations
+    indicateurs <- new_indicateurs
+    observations <- new_observations
+  }
+  
+  rm(new_stations)
+  
+  save(operations, stations, indicateurs, observations, date_export, file = "data_hubeau.rda")
+  # vroom::vroom_write(observations, "observations.csv", delim = ";")
+  }
+  
+}
 
-stations <- hubeau::get_poisson_stations() |>
-    dplyr::filter(code_station %in% operations$code_station)
-
-indicateurs <- get_data_poissons(endpoint = "indicateurs", stations = stations$code_station)
-
-observations <- get_data_poissons(endpoint = "observations", stations = stations$code_station) |>
-    dplyr::filter(!is.na(code_alternatif_taxon))
 
 
 ```
@@ -368,13 +458,18 @@ ipr <- ipr |>
 
 ```
 
+```{r}
+rm(stations, operations, observations)
+```
+
+
 # Graphiques Popups
 
 ```{r}
-dim_base = 1.15
+dim_base = 0.82
 DimensionsPopups <- list(
     largeur = dim_base*4,
-    hauteur = dim_base*4.7
+    hauteur = dim_base*4.85
 )
 ```
 ## Composition taxonomique
@@ -394,7 +489,7 @@ if (generer_popups) {
          width = .96
          )
 
-save(plots_especes, file = "plots_especes.rda")
+# save(plots_especes, file = "plots_especes.rda")
 }
 
 ```
@@ -445,7 +540,7 @@ if (generer_popups) {
         ) |> 
     purrr::reduce(.f = c)
 
-save(plots_ipr, file = "plots_ipr.rda")
+# save(plots_ipr, file = "plots_ipr.rda")
 }
 
 ```
@@ -459,7 +554,10 @@ codes_especes <- aspe::data_passerelle_taxo$esp_code_taxref |>
 ```
 
 ```{r}
-if (!dir.exists("../inst/app/www/widgets")) dir.create("../inst/app/www/widgets", recursive = TRUE)
+if (dir.exists("../inst/app/www/widgets")) {
+  unlink("../inst/app/www/widgets", recursive = TRUE)
+}
+dir.create("../inst/app/www/widgets", recursive = TRUE)
 
 if (generer_popups) {
   if (dir.exists("inst/app/www/widgets"))
@@ -474,6 +572,7 @@ popups_especes <- AspeDashboard::prep_sauver_popups(
     largeur_popup = DimensionsPopups$largeur*1.25,
     hauteur_popup = DimensionsPopups$hauteur*1.25+.66,
     reduire_marges = TRUE,
+    dimensions_auto = TRUE,
     lien_inpn = TRUE,
     verbose = TRUE
 )
@@ -497,6 +596,7 @@ file.copy(
      largeur_popup = DimensionsPopups$largeur*1.25,
      hauteur_popup = DimensionsPopups$hauteur*1.25+.5,
      reduire_marges = TRUE,
+     dimensions_auto = TRUE,
      lien_inpn = FALSE,
      verbose = TRUE
  )
@@ -643,35 +743,13 @@ carte_operations <- dplyr::left_join(
                         by = "pop_id"
                 ) |> 
     dplyr::mutate(
-        hover = paste0(
-            "<b>", sta_libelle_sandre, " (", sta_code_sandre, ")</b><br>",
-            "<em>", dept_libelle, " (", reg_libelle, ")</em><br>",
-            nb_annees, " année",
-            ifelse(nb_annees != "1", "s", ""),
-            ifelse(variable == "distribution",
-                   paste0(" de détection (sur ", nb_annees_tot, ")"),
-                   " de suivi"
-                   ),
-            "<br>",
-            dplyr::case_when(
-                variable == "especes" ~ paste0(
-                    valeur, " espèce",
-                    ifelse(valeur != "1", "s", "")
-                    ),
-                variable == "ipr" ~ paste0(valeur, " état"),
-                variable == "distribution" ~ paste0("Densité moyenne quand capturée: ", valeur)
-                ),
-            ifelse(variable == "distribution", "",
-                   paste0(" (", annee, ")")
-                   )
-            ),
          opacite = ifelse(donnees_recentes, 1, .25)
         ) |>
     dplyr::select(
-        pop_id, dept_id, dh_libelle, annee, esp_code_alternatif,effectif,
-        nb_annees, variable, valeur, hover, couleur, opacite
+        pop_id, dept_id, dh_libelle, annee, esp_code_alternatif, effectif,
+        nb_annees, nb_annees_tot, variable, valeur, couleur, opacite,
+        sta_libelle_sandre, sta_code_sandre, dept_libelle, reg_libelle
         ) 
-
 ```
 
 ```{r}
@@ -815,6 +893,7 @@ metriques_ipr <- indicateurs |>
         ) |>
     dplyr::mutate(metrique = stringr::str_remove(metrique, "ipr_"))
 
+rm(indicateurs)
 ```
 
 ```{r}
@@ -838,5 +917,27 @@ download.file(
 
 ```{r}
 if(!dir.exists("../inst/app/data")) dir.create("../inst/app/data", recursive = TRUE)
-save(date_export, pop_geo, captures, ipr, codes_especes, popups_especes, popups_ipr, carte_operations, LegendeEspeces, LegendeIpr, LegendeDistribution, metriques, file = "../inst/app/data/dataApp.rda")
+pop_geo <- pop_geo |>
+    dplyr::select(
+        pop_id, pop_libelle, sta_code_sandre, sta_libelle_sandre, dept_id, dept_libelle, reg_id, reg_libelle, dh_libelle
+    )
+
+captures <- captures |>
+    dplyr::select(
+        sta_code_sandre, sta_libelle_sandre, pop_id, pop_libelle, ope_id, ope_date, annee, ope_surface_calculee, dh_libelle, dept_id, esp_code_alternatif, effectif, densite
+    )
+
+ipr <- ipr |>
+    dplyr::select(
+        pop_id, pop_libelle, ope_id, ope_date, annee, sup_500m, dept_id, ipr, cli_libelle, dh_libelle
+    )
+
+metriques <- metriques |>
+    dplyr::select(
+        pop_id, pop_libelle, ope_id, annee, ipr_nte, metrique, valeur, variable
+    )
+
+save(
+  date_export, pop_geo, captures, ipr , metriques, codes_especes, carte_operations, LegendeEspeces, LegendeIpr, LegendeDistribution, 
+  file = "../inst/app/data/dataApp.rda")
 ```

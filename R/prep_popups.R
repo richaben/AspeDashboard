@@ -224,7 +224,7 @@ prep_sauver_popups <- function(plots, dir_popup, largeur_popup, hauteur_popup, r
 #' @examples
 #' @importFrom utils tar
 archiver_popups <- function(dir_popup, archive_name, verbose = TRUE, delete_dir = FALSE) {
-    if (verbose) cat("Compression des fichiers")
+    if (verbose) cat("Compression des fichiers\n\n")
     utils::tar(
         tarfile = archive_name,
         files = list.files(dir_popup, full.names = TRUE, recursive = TRUE),
