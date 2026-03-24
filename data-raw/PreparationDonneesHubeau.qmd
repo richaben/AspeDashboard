@@ -7,8 +7,10 @@ format: gfm
 ```{r}
 if (!require("pak")) install.packages("pak")
 
+# pak::pkg_install(c("karthik/rdrop2", "dreamRs/shinylogs"))
+
 pak::pkg_install(c(
-    "CedricMondy/AspeDashboard",
+    "OFB-IdF/AspeDashboard",
     "PascalIrz/aspe",
     "MaelTheuliere/COGiter",
     "httr", "sf", "rmapshaper", "dplyr", "purrr", "usethis", "stringr", "progress", "lubridate", "tidyr", "hubeau",
