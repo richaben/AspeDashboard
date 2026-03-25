@@ -7,6 +7,8 @@ format: gfm
 ```{r}
 if (!require("pak")) install.packages("pak")
 
+# pak::pkg_install(c("karthik/rdrop2", "dreamRs/shinylogs"))
+
 pak::pkg_install(c(
     "PascalIrz/aspe", "karthik/rdrop2", "OFB-IdF/templatesOFB",
     "OFB-IdF/AspeDashboard",
