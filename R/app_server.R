@@ -18,7 +18,7 @@ app_server <- function( input, output, session ) {
             rdstoken = "dropbox_token.rds"
         )
         
-        list.files("logs") %>%
+        list.files("logs") |>
             purrr::walk(
                 function(log) {
                     rdrop2::drop_upload(

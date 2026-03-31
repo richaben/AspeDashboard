@@ -1,12 +1,12 @@
 #' selecteur_variable UI Function
 #'
-#' @description A shiny Module.
+#' @description Module UI pour la sélection de la variable d'intérêt.
 #'
-#' @param id,input,output,session Internal parameters for {shiny}.
+#' @param id Paramètre interne pour {shiny}.
 #'
 #' @noRd 
 #'
-#' @importFrom shiny NS tagList 
+#' @importFrom shiny NS tagList selectInput
 mod_selecteur_variable_ui <- function(id){
   ns <- NS(id)
   tagList(
@@ -25,7 +25,12 @@ mod_selecteur_variable_ui <- function(id){
     
 #' selecteur_variable Server Functions
 #'
+#' @description Module serveur pour la gestion du sélecteur de variable.
+#'
+#' @param id Identifiant du module.
+#'
 #' @noRd 
+#' @importFrom shiny moduleServer reactive
 mod_selecteur_variable_server <- function(id){
   moduleServer( id, function(input, output, session){
     ns <- session$ns

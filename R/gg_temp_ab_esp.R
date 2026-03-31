@@ -1,15 +1,21 @@
-#' Title
+#' Graphe temporel d'abondance par espèce
 #'
-#' @param df 
-#' @param var_espece 
-#' @param var_abondance 
-#' @param var_annee 
-#' @param var_site 
-#' @param var_proto 
-#' @param sel_espece 
-#' @param sel_site 
+#' @description Génère un graphique combiné montrant l'abondance d'une espèce 
+#' et le protocole de pêche utilisé au fil du temps pour un site donné.
 #'
-#' @return
+#' @param df Un data.frame contenant les données.
+#' @param var_espece Colonne contenant l'espèce (quosure).
+#' @param var_abondance Colonne contenant l'abondance (quosure).
+#' @param var_annee Colonne contenant l'année (quosure).
+#' @param var_site Colonne contenant le site (quosure).
+#' @param var_proto Colonne contenant le protocole (quosure).
+#' @param sel_espece L'espèce sélectionnée.
+#' @param sel_site Le site sélectionné.
+#' @param interactif Booléen, si TRUE renvoie un objet girafe interactif.
+#' @param largeur Largeur du graphique.
+#' @param hauteur Hauteur du graphique.
+#'
+#' @return Un objet ggplot2 ou girafe.
 #' @export
 #'
 #' @importFrom dplyr select filter mutate distinct
@@ -35,26 +41,26 @@ gg_temp_ab_esp <- function(df, var_espece, var_abondance, var_annee, var_site, v
     var_site <- rlang::enquo(var_site)
     var_proto <- rlang::enquo(var_proto)
     
-    data_esp <- df %>% 
+    data_esp <- df |> 
         dplyr::select(
             site = !!var_site,
             annee = !!var_annee,
             protocole = !!var_proto,
             espece = !!var_espece,
             abondance = !!var_abondance
-        ) %>% 
-        dplyr::filter(site == sel_site) %>% 
+        ) |> 
+        dplyr::filter(site == sel_site) |> 
         tidyr::complete(
             tidyr::nesting(site, annee, protocole),
             espece
-        ) %>% 
-        dplyr::filter(espece == sel_espece) %>% 
-        dplyr::mutate(abondance = abondance %>% 
+        ) |> 
+        dplyr::filter(espece == sel_espece) |> 
+        dplyr::mutate(abondance = abondance |> 
                           tidyr::replace_na(replace = 0),
                       lbl = paste0(sel_site, ": ", sel_espece),
                       hover = paste0(site, "<br>", annee, "<br>", espece, ": ", abondance))
     
-    gg_ab <- data_esp %>% 
+    gg_ab <- data_esp |> 
         ggplot2::ggplot(
             mapping = ggplot2::aes(
                 x = annee,
@@ -65,7 +71,7 @@ gg_temp_ab_esp <- function(df, var_espece, var_abondance, var_annee, var_site, v
             width = .5, 
             mapping = ggplot2::aes(tooltip = hover)
             ) +
-        ggplot2::geom_point(data = data_esp %>% 
+        ggplot2::geom_point(data = data_esp |> 
                                 dplyr::filter(abondance == 0),
                             shape = 4, size = 2, stroke = 2) + 
         ggplot2::facet_wrap(ggplot2::vars(lbl)) +
@@ -85,9 +91,9 @@ gg_temp_ab_esp <- function(df, var_espece, var_abondance, var_annee, var_site, v
             )
         )
     
-    data_proto <- data_esp %>%
-        dplyr::select(annee, site, protocole) %>% 
-        dplyr::distinct() %>% 
+    data_proto <- data_esp |>
+        dplyr::select(annee, site, protocole) |> 
+        dplyr::distinct() |> 
         dplyr::mutate(
             hover2 = paste0("<b>", annee, "</b><br>", protocole)
         )

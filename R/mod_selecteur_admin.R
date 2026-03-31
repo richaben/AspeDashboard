@@ -1,12 +1,12 @@
 #' selecteur_admin UI Function
 #'
-#' @description A shiny Module.
+#' @description Module UI pour la sélection géographique (Région et Département).
 #'
-#' @param id,input,output,session Internal parameters for {shiny}.
+#' @param id Paramètre interne pour {shiny}.
 #'
 #' @noRd 
 #'
-#' @importFrom shiny NS tagList 
+#' @importFrom shiny NS tagList selectInput
 mod_selecteur_admin_ui <- function(id){
   ns <- NS(id)
   tagList(
@@ -42,7 +42,13 @@ mod_selecteur_admin_ui <- function(id){
     
 #' selecteur_admin Server Functions
 #'
+#' @description Module serveur pour la gestion dynamique des sélecteurs administratifs.
+#'
+#' @param id Identifiant du module.
+#' @param bassin Réactif contenant les bassins sélectionnés.
+#'
 #' @noRd 
+#' @importFrom shiny moduleServer observe updateSelectInput reactive
 mod_selecteur_admin_server <- function(id, bassin){
   moduleServer( id, function(input, output, session){
     ns <- session$ns
@@ -67,7 +73,7 @@ mod_selecteur_admin_server <- function(id, bassin){
         selection <- selectionner_departement(
             region = input$region,
             bassin = bassin()
-            )[-1] %>%
+            )[-1] |>
           unname()
       } else {
         selection <- input$departement

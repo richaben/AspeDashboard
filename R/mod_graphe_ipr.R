@@ -1,12 +1,12 @@
 #' graphe_ipr UI Function
 #'
-#' @description A shiny Module.
+#' @description Module UI pour l'affichage du graphique IPR.
 #'
-#' @param id,input,output,session Internal parameters for {shiny}.
+#' @param id Paramètre interne pour {shiny}.
 #'
 #' @noRd 
 #'
-#' @importFrom shiny NS tagList 
+#' @importFrom shiny NS tagList plotOutput
 mod_graphe_ipr_ui <- function(id){
   ns <- NS(id)
   tagList(
@@ -16,23 +16,40 @@ mod_graphe_ipr_ui <- function(id){
     
 #' graphe_ipr Server Functions
 #'
+#' @description Module serveur pour la génération du graphique IPR.
+#'
+#' @param id Identifiant du module.
+#' @param departement Réactif contenant le ou les départements sélectionnés.
+#' @param bassin Réactif contenant le ou les bassins sélectionnés.
+#' @param periode Réactif contenant la période sélectionnée (range).
+#'
 #' @noRd 
 #' @importFrom dplyr filter
 #' @importFrom ggplot2 theme element_line element_text scale_x_continuous scale_y_continuous
 #' @importFrom templatesOFB theme_ofb int_breaks int_limits
+#' @importFrom shiny moduleServer renderPlot
 mod_graphe_ipr_server <- function(id, departement, bassin, periode){
   moduleServer( id, function(input, output, session){
     ns <- session$ns
  
-    DonneesGraphe <- ipr %>% 
-        dplyr::filter(
-            dh_libelle %in% bassin(),
-            dept_id %in% departement(),
-            annee >= min(periode()) & annee <= max(periode())
-        ) 
+    DonneesGraphe <- reactive({
+        sel_bassin <- bassin()
+        sel_dept <- departement()
+         sel_per <- periode()
+         min_per <- min(sel_per)
+         max_per <- max(sel_per)
+         
+         ipr |> 
+             dplyr::filter(
+                 dh_libelle %in% sel_bassin,
+                 dept_id %in% sel_dept,
+                 annee >= min_per,
+                 annee <= max_per
+             ) 
+    })
     
-    output$graphe <- renderPlot(
-        graphe_ipr(donnees = DonneesGraphe) +
+    output$graphe <- renderPlot({
+        graphe_ipr(donnees = DonneesGraphe()) +
             templatesOFB::theme_ofb() +
             ggplot2::theme(
                 panel.grid.major.y = ggplot2::element_line(colour = "grey"),
@@ -47,7 +64,7 @@ mod_graphe_ipr_server <- function(id, departement, bassin, periode){
                 breaks = templatesOFB::int_breaks,
                 limits = templatesOFB::int_limits
             )
-    )
+    })
   })
 }
     

@@ -1,11 +1,12 @@
 #' generer_chiffres_cles UI Function
 #'
-#' @description A shiny Module.
+#' @description Module UI pour l'affichage des chiffres clés.
 #'
-#' @param id,input,output,session Internal parameters for {shiny}.
+#' @param id Paramètre interne pour {shiny}.
 #'
 #' @noRd 
 #'
+#' @importFrom shiny NS fluidPage tags HTML uiOutput
 #' @importFrom shiny.semantic cards card
 #' @importFrom shinydashboardPlus accordion accordionItem
 mod_generer_chiffres_cles_ui <- function(id){
@@ -36,8 +37,17 @@ mod_generer_chiffres_cles_ui <- function(id){
     
 #' generer_chiffres_cles Server Functions
 #'
+#' @description Module serveur pour le calcul et l'affichage des chiffres clés.
+#'
+#' @param id Identifiant du module.
+#' @param variable Réactif contenant la variable d'intérêt ("ipr" ou "especes").
+#' @param departement Réactif contenant le ou les départements sélectionnés.
+#' @param bassin Réactif contenant le ou les bassins sélectionnés.
+#' @param periode Réactif contenant la période sélectionnée (range).
+#'
 #' @noRd 
 #' @importFrom dplyr filter
+#' @importFrom shiny moduleServer renderUI req tagList div
 mod_generer_chiffres_cles_server <- function(id, variable, departement, bassin, periode){
   moduleServer( id, function(input, output, session){
     ns <- session$ns
@@ -61,21 +71,30 @@ mod_generer_chiffres_cles_server <- function(id, variable, departement, bassin, 
     output$chiffres_cle <- renderUI({
         req(variable(), departement)
         
-        if (variable() %in%  c("especes", "distribution"))
-            donnees <- captures %>%
-                dplyr::filter(
-                    dept_id %in% departement(),
-                    dh_libelle %in% bassin(),
-                    annee >= min(periode()) & annee <= max(periode())
-                    )
+        sel_var <- variable()
+        sel_dept <- departement()
+        sel_bassin <- bassin()
+        sel_per <- periode()
+        min_per <- min(sel_per)
+        max_per <- max(sel_per)
         
-        if (variable() == "ipr")
-            donnees <- ipr %>%
+        if (sel_var %in%  c("especes", "distribution"))
+            donnees <- captures |>
                 dplyr::filter(
-                    dept_id %in% departement(),
-                    dh_libelle %in% bassin(),
-                    annee >= min(periode()) & annee <= max(periode())
-                    )
+                    dept_id %in% sel_dept,
+                    dh_libelle %in% sel_bassin,
+                    annee >= min_per,
+                    annee <= max_per
+                    ) 
+        
+        if (sel_var == "ipr")
+            donnees <- ipr |>
+                dplyr::filter(
+                    dept_id %in% sel_dept,
+                    dh_libelle %in% sel_bassin,
+                    annee >= min_per,
+                    annee <= max_per
+                    ) 
         
         indicateurs <- calculer_chiffres_cles(donnees, variable())
 

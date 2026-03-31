@@ -76,7 +76,15 @@ list_to_p <- function(list, class = NULL){
   
 }
 
-#' @importFrom shiny tags tagAppendAttributes tagList
+#' Turn a named R list into an HTML list
+#'
+#' @param list A named R list
+#' @param class a class for the list
+#' 
+#' @return an HTML list
+#' @noRd
+#' 
+#' @importFrom shiny tags tagAppendAttributes tagList HTML
 named_to_li <- function(list, class = NULL){
   if(is.null(class)){
     res <- mapply(

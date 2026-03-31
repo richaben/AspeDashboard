@@ -1,12 +1,12 @@
 #' selecteur_bassin UI Function
 #'
-#' @description A shiny Module.
+#' @description Module UI pour la sélection des bassins hydrographiques.
 #'
-#' @param id,input,output,session Internal parameters for {shiny}.
+#' @param id Paramètre interne pour {shiny}.
 #'
 #' @noRd 
 #'
-#' @importFrom shiny NS tagList 
+#' @importFrom shiny NS tagList selectInput
 mod_selecteur_bassin_ui <- function(id){
   ns <- NS(id)
   tagList(
@@ -30,7 +30,12 @@ mod_selecteur_bassin_ui <- function(id){
     
 #' selecteur_bassin Server Functions
 #'
+#' @description Module serveur pour la gestion du sélecteur de bassin.
+#'
+#' @param id Identifiant du module.
+#'
 #' @noRd 
+#' @importFrom shiny moduleServer reactive
 mod_selecteur_bassin_server <- function(id){
   moduleServer( id, function(input, output, session){
     ns <- session$ns

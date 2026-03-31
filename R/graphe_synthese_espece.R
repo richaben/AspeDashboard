@@ -1,22 +1,28 @@
-#' Title
+#' Graphe de synthèse par espèce
 #'
-#' @param captures 
-#' @param bassins 
-#' @param departements 
-#' @param espece 
+#' @description Génère un graphique montrant l'évolution temporelle de la présence, 
+#' des effectifs et des densités pour une espèce donnée sur un ensemble de stations.
 #'
-#' @return
+#' @param captures Un data.frame contenant les données de captures (doit inclure 
+#' les colonnes `pop_id`, `annee`, `ope_id`, `esp_code_alternatif`, `effectif`, `densite`).
+#' @param espece Le code de l'espèce à visualiser (ex: "GOU").
+#' @param station L'identifiant (pop_id) de la station à mettre en évidence.
+#'
+#' @return Un objet ggplot2 avec plusieurs facettes (nombre de stations, 
+#' effectif total, densité moyenne).
 #' @export
 #'
-#' @examples
+#' @importFrom dplyr group_by summarise n_distinct mutate ungroup left_join filter distinct across everything
+#' @importFrom ggplot2 ggplot aes geom_col geom_line labs facet_wrap vars scale_fill_manual scale_colour_manual theme_minimal
+#' @importFrom tidyr pivot_longer
 graphe_synthese_espece <- function(captures, espece, station) {
-    data_graphe <- captures %>% 
-        dplyr::group_by(pop_id, annee, ope_id) %>% 
+    data_graphe <- captures |> 
+        dplyr::group_by(pop_id, annee, ope_id) |> 
         dplyr::summarise(
             effectif = sum(effectif[esp_code_alternatif == espece]),
             densite = sum(densite[esp_code_alternatif == espece]),
             .groups = "drop"
-        ) %>% 
+        ) |> 
         dplyr::mutate(presence = effectif > 0)
     
     labels_metriques <- c(
@@ -25,67 +31,69 @@ graphe_synthese_espece <- function(captures, espece, station) {
         dens_moy = "Densité moyenne lorsque l'espèce est présente"
     )
     
-    data_n_stations <- data_graphe %>% 
-        dplyr::group_by(annee, presence) %>% 
+    data_n_stations <- data_graphe |> 
+        dplyr::group_by(annee, presence) |> 
         dplyr::summarise(
             nb_pop = dplyr::n_distinct(pop_id),
             eff_tot = sum(effectif),
             dens_moy = mean(densite),
             .groups = "drop"
-        ) %>% 
+        ) |> 
         tidyr::pivot_longer(
             cols = c(nb_pop, eff_tot, dens_moy),
             names_to = "metrique",
             values_to = "valeurs"
-        ) %>% 
+        ) |> 
         dplyr::filter(
             !(metrique != "nb_pop" & !presence)
-        ) %>% 
+        ) |> 
         dplyr::mutate(
-            metrique = labels_metriques[metrique] %>% 
+            metrique = labels_metriques[metrique] |> 
                 factor(levels = labels_metriques)
         )
     
-    data_station <- data_graphe %>% 
-        dplyr::filter(pop_id %in% station) %>% 
-        dplyr::group_by(annee, presence) %>% 
+    add_captures <- function(df) {
+        if (nrow(df) > 0) {
+            df |> 
+                dplyr::left_join(
+                    captures |> 
+                        dplyr::filter(pop_id %in% station) |> 
+                        dplyr::distinct(pop_id, pop_libelle) |> 
+                        dplyr::mutate(
+                            dplyr::across(
+                                dplyr::everything(), 
+                                as.character
+                            )
+                        ),
+                    by = "pop_id"
+                )
+        } else {
+            df |> 
+                dplyr::mutate(
+                    pop_id = "",
+                    pop_libelle = ""
+                )
+        }
+    }
+    
+    data_station <- data_graphe |> 
+        dplyr::filter(pop_id %in% station) |> 
+        dplyr::group_by(annee, presence) |> 
         dplyr::summarise(
             dens_moy = mean(densite),
             .groups = "drop"
-        ) %>% 
+        ) |> 
         tidyr::pivot_longer(
             cols = dens_moy,
             names_to = "metrique",
             values_to = "valeurs"
-        ) %>% 
+        ) |> 
         dplyr::mutate(
-            metrique = labels_metriques[metrique] %>% 
+            metrique = labels_metriques[metrique] |> 
                 factor(levels = labels_metriques),
             pop_id = as.character(station)
-        ) %>% 
-        (function(df) {
-            if (nrow(df) > 0) {
-                df %>% 
-                    dplyr::left_join(
-                        captures %>% 
-                            dplyr::filter(pop_id %in% station) %>% 
-                            dplyr::distinct(pop_id, pop_libelle) %>% 
-                            dplyr::mutate(
-                                dplyr::across(
-                                    dplyr::everything(), 
-                                    as.character
-                                    )
-                                ),
-                        by = "pop_id"
-                        )
-                } else {
-                df %>% 
-                        dplyr::mutate(
-                            pop_id = "",
-                            pop_libelle = ""
-                        )
-            }
-        }) %>% 
+        ) |> 
+        add_captures() |> 
         dplyr::mutate(label = paste0(pop_libelle, "\ (", pop_id, ")"))
         
     if (nrow(data_n_stations) > 0) {
