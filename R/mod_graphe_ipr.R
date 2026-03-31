@@ -45,7 +45,8 @@ mod_graphe_ipr_server <- function(id, departement, bassin, periode){
                  dept_id %in% sel_dept,
                  annee >= min_per,
                  annee <= max_per
-             ) 
+             ) |> 
+             dplyr::collect()
     })
     
     output$graphe <- renderPlot({

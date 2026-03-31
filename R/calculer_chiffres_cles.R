@@ -44,6 +44,7 @@ calculer_chiffres_cles <- function(donnees, variable) {
             captures |> 
                 dplyr::ungroup() |> 
                 dplyr::distinct(esp_code_alternatif) |> 
+                dplyr::collect() |> 
                 nrow(),
             " nationaux)"
             )

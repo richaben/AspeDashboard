@@ -57,7 +57,8 @@ mod_graphes_metriques_server <- function(id, variable, point, departement, bassi
                         pop_id == sel_point,
                         annee >= min_per,
                         annee <= max_per
-                    ) 
+                    ) |> 
+                    dplyr::collect()
                 
                 if (nrow(SelectionMetriques) == 0) {
                     NULL
@@ -101,6 +102,7 @@ mod_graphes_metriques_server <- function(id, variable, point, departement, bassi
                     annee >= min_per,
                     annee <= max_per
                 ) |> 
+                dplyr::collect() |> 
                 graphe_synthese_espece(
                 espece = sel_esp,
                 station = sel_point

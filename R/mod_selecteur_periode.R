@@ -66,7 +66,8 @@ mod_selecteur_periode_server <- function(id, bassin, departement){
                 dh_libelle %in% sel_bassin,
                 dept_id %in% sel_dept
             ) |> 
-            dplyr::select(annee) 
+            dplyr::select(annee) |> 
+          dplyr::collect()
         
 
         if (nrow(DataPeriode) > 0) {

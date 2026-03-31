@@ -12,6 +12,7 @@ BugReports: https://github.com/CedricMondy/AspeDashboard/issues
 Depends: 
     R (>= 2.10)
 Imports: 
+    arrow,
     aspe,
     config,
     dplyr,

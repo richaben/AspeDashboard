@@ -85,7 +85,8 @@ mod_generer_chiffres_cles_server <- function(id, variable, departement, bassin, 
                     dh_libelle %in% sel_bassin,
                     annee >= min_per,
                     annee <= max_per
-                    ) 
+                    ) |> 
+                dplyr::collect()
         
         if (sel_var == "ipr")
             donnees <- ipr |>
@@ -94,7 +95,8 @@ mod_generer_chiffres_cles_server <- function(id, variable, departement, bassin, 
                     dh_libelle %in% sel_bassin,
                     annee >= min_per,
                     annee <= max_per
-                    ) 
+                    ) |> 
+                dplyr::collect()
         
         indicateurs <- calculer_chiffres_cles(donnees, variable())
 

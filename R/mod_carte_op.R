@@ -154,11 +154,13 @@ mod_carte_op_server <- function(id, departement, bassin, periode, variable, espe
             sel_var != "distribution" | is.null(sel_esp), "", sel_esp
         )
 
-        MapEmprise <- pop_geo |> 
+        MapEmprise <- pop_geo_df |> 
             dplyr::filter(
                 dept_id %in% sel_dept,
                 dh_libelle %in% sel_bassin
-            ) 
+            ) |> 
+            dplyr::collect() |> 
+            sf::st_as_sf(coords = c("x", "y"), crs = 4326)
         
         DataMap <- dplyr::inner_join(
                 MapEmprise |> 
@@ -171,7 +173,7 @@ mod_carte_op_server <- function(id, departement, bassin, periode, variable, espe
                     annee >= min_per,
                     annee <= max_per
                   ) |> 
-            dplyr::group_by(pop_id) |> 
+                  dplyr::collect() |> 
                   dplyr::mutate(
                     esp_code_alternatif = stringr::str_replace_na(
                       esp_code_alternatif, ""
@@ -314,7 +316,7 @@ mod_carte_op_server <- function(id, departement, bassin, periode, variable, espe
     # observe the marker click info and print to console when it is changed.
     observeEvent(input$carte_op_marker_click,{
         SelectionPoint$clickedMarker <- input$carte_op_marker_click$id
-        update
+        # update
     })
     
     observeEvent(input$reset, {
@@ -327,13 +329,12 @@ mod_carte_op_server <- function(id, departement, bassin, periode, variable, espe
             inputId = "station",
             choices = c(
                 "Localiser un point de prélèvement" = "",
-                pop_geo %>% 
-                    sf::st_drop_geometry() %>% 
+                pop_geo_df |> 
                     dplyr::filter(
                         dept_id %in% sel_dept,
                         dh_libelle %in% sel_bassin
                     ) |> 
-                    dplyr::distinct(pop_libelle) %>% 
+                    dplyr::collect() |> 
                     dplyr::distinct(pop_libelle) |> 
                     dplyr::arrange(pop_libelle) |> 
                     dplyr::pull(pop_libelle)

@@ -40,6 +40,7 @@ mod_selecteur_espece_server <- function(id, variable, bassin, departements){
                 dplyr::filter(dh_libelle %in% sel_bassin) |> 
                 dplyr::filter(dept_id %in% sel_dept) |> 
                 dplyr::distinct(esp_code_alternatif) |> 
+                dplyr::collect() |> 
                 tidyr::drop_na() |> 
                 dplyr::arrange(esp_code_alternatif) |> 
                 dplyr::pull(esp_code_alternatif)

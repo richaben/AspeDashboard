@@ -32,15 +32,15 @@ selectionner_departement <- function(region, bassin) {
         if (length(region) == 0)
             region <- unique(administratif$INSEE_REG)
         if (length(bassin) == 0)
-            bassin <- pop_geo |> 
-                sf::st_drop_geometry() |> 
+            bassin <- pop_geo_df |> 
                 dplyr::distinct(dh_libelle) |> 
+                dplyr::collect() |> 
                 tidyr::drop_na() |> 
                 dplyr::pull(dh_libelle)
                 
-        SelectionPop <-  pop_geo |> 
-            sf::st_drop_geometry() |> 
+        SelectionPop <-  pop_geo_df |> 
             dplyr::distinct(dept_id, dept_libelle, reg_id, dh_libelle) |> 
+            dplyr::collect() |> 
             dplyr::arrange(dept_id) |> 
             dplyr::filter(
                 reg_id %in% region,
