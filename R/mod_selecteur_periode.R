@@ -10,7 +10,26 @@
 mod_selecteur_periode_ui <- function(id){
   ns <- NS(id)
   tagList(
-      uiOutput(ns("slider_periode"))
+      sliderInput(
+          inputId = ns("periode"),
+          label = "Choisir la période",
+          min = captures |> 
+            dplyr::distinct(annee) |> 
+            dplyr::pull(annee, as_vector = TRUE) |> 
+            min(),
+          max = captures |> 
+            dplyr::distinct(annee) |> 
+            dplyr::pull(annee, as_vector = TRUE) |> 
+            max(),
+          value = captures |> 
+            dplyr::distinct(annee) |> 
+            dplyr::pull(annee, as_vector = TRUE) |> 
+            range(),
+          round = TRUE,
+          sep = "",
+          ticks = FALSE,
+          animate = TRUE
+      )
   )
 }
     
@@ -28,32 +47,6 @@ mod_selecteur_periode_ui <- function(id){
 mod_selecteur_periode_server <- function(id, bassin, departement){
   moduleServer( id, function(input, output, session){
     ns <- session$ns
-    
-    # Calcul des bornes initiales de manière sécurisée (une seule fois)
-    LimitesInitiales <- reactive({
-        captures |> 
-            dplyr::select(annee) |> 
-            dplyr::summarise(
-                min_an = min(annee, na.rm = TRUE),
-                max_an = max(annee, na.rm = TRUE)
-            ) 
-    })
-    
-    output$slider_periode <- renderUI({
-        lim <- LimitesInitiales()
-        
-        sliderInput(
-            inputId = ns("periode"),
-            label = "Choisir la période",
-            min = lim$min_an,
-            max = lim$max_an,
-            value = c(lim$min_an, lim$max_an),
-            round = TRUE,
-            sep = "",
-            ticks = FALSE,
-            animate = TRUE
-        )
-    })
     
     observe({
         req(bassin, departement, input$periode)

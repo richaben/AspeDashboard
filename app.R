@@ -16,13 +16,9 @@ AspeDashboard::run_app(
         }
         
         # Chargement des métadonnées légères
-        if (file.exists("inst/app/data/dataApp_metadata.rda")) {
-            load("inst/app/data/dataApp_metadata.rda", envir = .GlobalEnv)
-        } else if (file.exists("inst/app/data/dataApp.rda")) {
-            # Fallback vers le RDA si Parquet n'est pas encore généré
-            load("inst/app/data/dataApp.rda", envir = .GlobalEnv)
-        }
-        
+        if (file.exists("inst/app/data/metadata.rda")) {
+            load("inst/app/data/metadata.rda", envir = .GlobalEnv)
+        } 
         # Décompression des widgets au démarrage si nécessaire
         if (!dir.exists("inst/app/www/widgets/especes"))
             utils::untar("inst/app/www/widgets/especes.tar")
