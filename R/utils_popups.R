@@ -104,7 +104,7 @@ popup_ipr <- function(df_ipr, pop_id_sel, pop_libelle_sel, classe_ipr) {
     width = "auto",
     height = "auto",
     width_svg = largeur_base * 1.25,
-    height_svg = hauteur_base * 1.25 + 0.5,
+    height_svg = hauteur_base * 1.25 + 0.66,
     options = list(
       ggiraph::opts_sizing(rescale = TRUE, width = 1),
       ggiraph::opts_toolbar(saveaspng = FALSE),
