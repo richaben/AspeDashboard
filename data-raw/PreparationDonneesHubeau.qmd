@@ -10,13 +10,7 @@ if (!require("pak")) install.packages("pak")
 pak::pkg_install(c(
     "PascalIrz/aspe", 
     "OFB-IdF/AspeDashboard",
-    "OFB-IdF/AspeDashboardData",
-     "OFB-IdF/templatesOFB", 
-    "MaelTheuliere/COGiter",
-    "karthik/rdrop2","dreamRs/shinylogs", 
-    "arrow", "httr", "sf", "rmapshaper", "dplyr", "purrr", "usethis", "stringr", "progress",
-    "lubridate", "tidyr", "hubeau",
-    "ggplot2", "cowplot", "ggiraph", "leaflet", "ows4R"
+    "OFB-IdF/AspeDashboardData"
 ))
 
 
@@ -26,7 +20,7 @@ pak::pkg_install(c(
 library(aspe)
 
 download_sandre <- FALSE
-download_hubeau <- TRUE
+download_hubeau <- FALSE
 ```
 
 
@@ -43,7 +37,7 @@ if (download_sandre) {
 }
 
 if (download_hubeau) {
-  dept_test <- NULL # choisir un petit département à des fins de test (e.g. 93)
+  dept_test <- 94 # choisir un petit département à des fins de test (e.g. 93)
   
 
   maj <- file.exists("data_hubeau.rda")
@@ -59,36 +53,3 @@ codes_stations <- AspeDashboardData::get_data_hubeau(update = maj, code_departem
 AspeDashboardData::prep_data_dashboard("data_sandre.rda", "data_hubeau.rda", data_dashboard = "../inst/app/data")
 ```
 
-## Préparation des popups
-
-```{r}
-if (dir.exists("inst"))
-    unlink("inst", recursive = TRUE)
-
-dir.create("inst/app/www/widgets", recursive = TRUE)
-
-if (dir.exists("../inst/app/www/widgets"))
-    file.copy(
-        from = "../inst/app/www/widgets",
-        to = "inst/app/www/",
-        recursive = TRUE
-    )
-
-AspeDashboardData::prep_popups(
-  codes_stations, 
-  data_dashboard = "../inst/app/data",
-  popup_dir = "inst/app/www/widgets",
-  css_template = "../inst/app/www/style.css.bkp",
-  dim_base = 0.82
-  )
-
-file.copy(
-    from = "inst/app/www/widgets",
-    to = "../inst/app/www",
-    recursive = TRUE,
-    overwrite = TRUE
-)
-
-unlink("inst", recursive = TRUE)
-
-```

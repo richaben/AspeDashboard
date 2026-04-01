@@ -112,9 +112,8 @@ mod_carte_op_ui <- function(id){
             ns("carte_op"),
             width = '100%'
         ),
-        plotOutput(
-            ns("legende"),
-            height = "100px"
+        uiOutput(
+            ns("legende")
         )  
     )
   )
@@ -158,12 +157,14 @@ mod_carte_op_server <- function(id, departement, bassin, periode, variable, espe
             leaflet::fitBounds(BboxMap$xmin, BboxMap$ymin, BboxMap$xmax, BboxMap$ymax)
     })
 
-    output$legende <- renderPlot({
+    output$legende <- renderUI({
         req(variable())
-        switch(variable(),
-               especes = LegendeEspeces,
-               ipr = LegendeIpr,
-               distribution = LegendeDistribution)
+        img_src <- switch(variable(),
+               especes = "data/legende_especes.webp",
+               ipr = "data/legende_ipr.webp",
+               distribution = "data/legende_distribution.webp")
+        
+        tags$img(src = img_src, style = "width: auto; height: 70px; padding-top: 10px")
     })
 
     # 1. Emprise géographique (Variables locales pour Arrow)
