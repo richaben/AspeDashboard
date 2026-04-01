@@ -16,7 +16,7 @@ pak::pkg_install(c(
     "karthik/rdrop2","dreamRs/shinylogs", 
     "arrow", "httr", "sf", "rmapshaper", "dplyr", "purrr", "usethis", "stringr", "progress",
     "lubridate", "tidyr", "hubeau",
-    "ggplot2", "cowplot", "ggiraph", "leaflet", "ows4R", 
+    "ggplot2", "cowplot", "ggiraph", "leaflet", "ows4R"
 ))
 
 

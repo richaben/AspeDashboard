@@ -30,3 +30,5 @@ dropbox_token.rds
 inst/app/www/style.css
 
 logs/
+
+data-raw/data_hubeau.rda

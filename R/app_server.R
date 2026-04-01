@@ -31,13 +31,6 @@ app_server <- function( input, output, session ) {
     # })
     
     
-    if (!dir.exists("inst/app/www/widgets/especes"))
-        utils::untar("inst/app/www/widgets/especes.tar")
-    
-    if (!dir.exists("inst/app/www/widgets/ipr"))
-        utils::untar("inst/app/www/widgets/ipr.tar")
-  
-    
     SelectionBassin <- mod_selecteur_bassin_server(
         id = "bassin"
     )
