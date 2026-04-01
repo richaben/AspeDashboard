@@ -37,6 +37,22 @@ mod_carte_op_ui <- function(id){
            .leaflet-touch .leaflet-control-layers .leaflet-control-zoom .leaflet-touch .leaflet-bar {
            z-index: 10000000000 !important;
            }
+
+           .custom-popup .leaflet-popup-content {
+                  width: 341px !important;
+                  height: 475px !important;
+                  margin: 0px !important;
+                  padding: 0px !important;
+                  overflow: hidden !important;
+             }
+ 
+             .custom-popup .leaflet-popup-content-wrapper {
+                   width: 341px !important;
+                   height: 475px !important;
+                   padding: 0px !important;
+                   border-radius: 5px;
+                   overflow: hidden !important;
+              }
           "
       )
   )
@@ -289,21 +305,14 @@ mod_carte_op_server <- function(id, departement, bassin, periode, variable, espe
                      htmlwidgets::saveWidget(p, file_path, selfcontained = TRUE)
                      
                      # Modification directe du style CSS dans le fichier HTML (approche AspeDashboardData)
-                     html_content <- readLines(file_path, warn = FALSE) |> 
-                         paste(collapse = "\n") |> 
-                         stringr::str_replace_all(
-                             pattern = 'el.style.width = "100%";', 
-                             replacement = "el.style.width = auto;"
-                         ) |> 
-                         stringr::str_replace_all(
-                             pattern = 'el.style.height = "100%";', 
-                             replacement = "el.style.height = auto;"
-                         )
-                     writeLines(html_content, file_path)
+                     readLines(file_path, warn = FALSE) |> 
+                         ajuster_html() |> 
+                       writeLines(file_path)
                      
                      content <- paste0(
                            '<iframe src="temp_popups/', file_name, '" ',
-                           'width="370px" height="515px" style="border:none;"></iframe>'
+                           'width="341px" height="475px" style="border:none; overflow:hidden;" ',
+                           'scrolling="no"></iframe>'
                        )
                    }
                } else if (sel_var == "ipr") {
@@ -331,21 +340,27 @@ mod_carte_op_server <- function(id, departement, bassin, periode, variable, espe
                        writeLines(html_content, file_path)
                        
                        content <- paste0(
-                           '<iframe src="temp_popups/', file_name, '" ',
-                           'width="370px" height="515px" style="border:none;"></iframe>'
-                       )
-                   }
-               }
- 
-                if (!is.null(content)) {
-                    leaflet::leafletProxy("carte_op") |> 
-                        leaflet::addPopups(
-                            lng = marker$lng, 
-                            lat = marker$lat, 
-                            popup = content,
-                            options = leaflet::popupOptions(maxWidth = 400, minWidth = 370)
+                            '<iframe src="temp_popups/', file_name, '" ',
+                            'width="341px" height="475px" style="border:none; overflow:hidden;" ',
+                            'scrolling="no"></iframe>'
                         )
+                    }
                 }
+ 
+                 if (!is.null(content)) {
+                     leaflet::leafletProxy("carte_op") |> 
+                         leaflet::addPopups(
+                             lng = marker$lng, 
+                             lat = marker$lat, 
+                             popup = content,
+                             options = leaflet::popupOptions(
+                                 minWidth = 341, 
+                                 maxWidth = 341, 
+                                 maxHeight = 500,
+                                 className = "custom-popup"
+                             )
+                         )
+                 }
           }, error = function(e) {
             shiny::showNotification(paste("Erreur lors de la génération du popup :", e$message), type = "error")
         })

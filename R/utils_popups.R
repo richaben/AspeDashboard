@@ -10,8 +10,8 @@ popup_peuplement <- function(df_captures, pop_id_sel, pop_libelle_sel) {
   if (nrow(df_captures) == 0) return(NULL)
   
   # Largeur et hauteur de base (inch)
-  largeur_base <- 4
-  hauteur_base <- 5
+  largeur_base <- 3.7
+  hauteur_base <- 4.6
   
   p <- aspe::gg_temp_peuplement(
     df = df_captures,
@@ -74,8 +74,8 @@ popup_ipr <- function(df_ipr, pop_id_sel, pop_libelle_sel, classe_ipr) {
   is_sup_500m <- unique(df_ipr$sup_500m)
   
   # Largeur et hauteur de base (inch)
-  largeur_base <- 4
-  hauteur_base <- 5
+  largeur_base <- 3.7
+  hauteur_base <- 4.6
   
   p <- aspe::gg_temp_ipr(
     df_ipr = df_ipr,
