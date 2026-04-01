@@ -32,21 +32,33 @@ mod_graphe_ipr_server <- function(id, departement, bassin, periode){
   moduleServer( id, function(input, output, session){
     ns <- session$ns
  
-    DonneesGraphe <- reactive({
+    # Données de base (Filtres spatiaux - Arrow)
+    DataBase_r <- reactive({
         sel_bassin <- bassin()
         sel_dept <- departement()
-         sel_per <- periode()
-         min_per <- min(sel_per)
-         max_per <- max(sel_per)
-         
-         ipr |> 
-             dplyr::filter(
-                 dh_libelle %in% sel_bassin,
-                 dept_id %in% sel_dept,
-                 annee >= min_per,
-                 annee <= max_per
-             ) |> 
-             dplyr::collect()
+        
+        res <- ipr |> 
+            dplyr::filter(
+                dh_libelle %in% sel_bassin,
+                dept_id %in% sel_dept
+            ) |> 
+            dplyr::collect()
+        gc()
+        res
+    })
+
+    # Données filtrées par période (Filtre temporel - R en mémoire)
+    DonneesGraphe <- reactive({
+        req(DataBase_r(), periode())
+        sel_per <- periode()
+        min_per <- min(sel_per)
+        max_per <- max(sel_per)
+        
+        DataBase_r() |> 
+            dplyr::filter(
+                annee >= min_per,
+                annee <= max_per
+            )
     })
     
     output$graphe <- renderPlot({

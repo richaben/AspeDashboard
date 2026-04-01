@@ -68,35 +68,49 @@ mod_generer_chiffres_cles_server <- function(id, variable, departement, bassin, 
   border-radius: 5px;
   "
     
-    output$chiffres_cle <- renderUI({
-        req(variable(), departement)
+    # Données de base (Filtres spatiaux & variable - Arrow)
+    DataBase_r <- reactive({
+        req(variable(), departement(), bassin())
         
         sel_var <- variable()
         sel_dept <- departement()
         sel_bassin <- bassin()
+        
+        if (sel_var %in%  c("especes", "distribution")) {
+            res <- captures |>
+                dplyr::filter(
+                    dept_id %in% sel_dept,
+                    dh_libelle %in% sel_bassin
+                ) |> 
+                dplyr::collect()
+        } else if (sel_var == "ipr") {
+            res <- ipr |>
+                dplyr::filter(
+                    dept_id %in% sel_dept,
+                    dh_libelle %in% sel_bassin
+                ) |> 
+                dplyr::collect()
+        } else {
+            return(NULL)
+        }
+        gc()
+        res
+    })
+    
+    output$chiffres_cle <- renderUI({
+        req(DataBase_r(), periode())
+        
+        sel_var <- variable()
         sel_per <- periode()
         min_per <- min(sel_per)
         max_per <- max(sel_per)
         
-        if (sel_var %in%  c("especes", "distribution"))
-            donnees <- captures |>
-                dplyr::filter(
-                    dept_id %in% sel_dept,
-                    dh_libelle %in% sel_bassin,
-                    annee >= min_per,
-                    annee <= max_per
-                    ) |> 
-                dplyr::collect()
-        
-        if (sel_var == "ipr")
-            donnees <- ipr |>
-                dplyr::filter(
-                    dept_id %in% sel_dept,
-                    dh_libelle %in% sel_bassin,
-                    annee >= min_per,
-                    annee <= max_per
-                    ) |> 
-                dplyr::collect()
+        # Filtrage par période sur les données en mémoire
+        donnees <- DataBase_r() |> 
+            dplyr::filter(
+                annee >= min_per, 
+                annee <= max_per
+            )
         
         indicateurs <- calculer_chiffres_cles(donnees, variable())
 

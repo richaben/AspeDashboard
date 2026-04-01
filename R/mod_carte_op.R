@@ -136,32 +136,27 @@ mod_carte_op_server <- function(id, departement, bassin, periode, variable, espe
         res
     })
 
-    # 2. Données de la carte (Calcul des filtres HORS du pipeline Arrow)
-    DataMap_r <- reactive({
-        req(MapEmprise_r(), periode(), variable())
+    # 2. Données de base (Filtres spatiaux, variable & espèce - Arrow)
+    DataBase_r <- reactive({
+        req(departement(), bassin(), variable())
         
         # Extraction des réactifs en variables locales
         sel_dept <- departement()
         sel_bassin <- bassin()
-        sel_per <- periode()
         sel_var <- variable()
         sel_esp <- espece()
 
         # Si variable "distribution", l'espèce est requise
-        if (sel_var == "distribution") req(sel_esp != "")
-        
-        # Calcul des bornes temporelles en R (Correction de l'erreur Arrow)
-        min_p <- as.integer(min(sel_per))
-        max_p <- as.integer(max(sel_per))
+        # On ne met pas de req() ici car cela bloquerait toute la chaîne réactive
+        # (et empêcherait d'effacer la carte si l'espèce est vide)
+        if (sel_var == "distribution" && (is.null(sel_esp) || sel_esp == "")) return(NULL)
 
-        # Pipeline Arrow optimisé
+        # Pipeline Arrow optimisé (Filtres spatiaux et thématiques)
         query <- carte_operations |> 
             dplyr::filter(
                 dept_id %in% sel_dept, 
                 dh_libelle %in% sel_bassin,
-                variable == sel_var,
-                annee >= min_p, 
-                annee <= max_p
+                variable == sel_var
             )
         
         # Filtrage spécifique à la distribution (Species filter)
@@ -169,8 +164,34 @@ mod_carte_op_server <- function(id, departement, bassin, periode, variable, espe
             query <- query |> dplyr::filter(esp_code_alternatif == sel_esp)
         }
 
-        data_filtered <- query |> dplyr::collect()
+        res <- query |> dplyr::collect()
         gc() 
+        res
+    })
+
+    # 2b. Données de la carte (Filtre temporel - R en mémoire)
+    DataMap_r <- reactive({
+        # On ne met pas de req() sur DataBase_r() ici pour permettre 
+        # le déclenchement de l'observeur même si DataBase_r() est NULL/bloqué
+        req(MapEmprise_r(), periode(), variable())
+        
+        # Extraction des réactifs en variables locales
+        data_base <- DataBase_r()
+        sel_per <- periode()
+        sel_var <- variable()
+
+        if (is.null(data_base) || nrow(data_base) == 0) return(NULL)
+
+        # Calcul des bornes temporelles
+        min_p <- as.integer(min(sel_per))
+        max_p <- as.integer(max(sel_per))
+
+        # Filtrage par période sur les données en mémoire
+        data_filtered <- data_base |> 
+            dplyr::filter(
+                annee >= min_p, 
+                annee <= max_p
+            )
             
         if (is.null(data_filtered) || nrow(data_filtered) == 0) return(NULL)
 
@@ -210,10 +231,11 @@ mod_carte_op_server <- function(id, departement, bassin, periode, variable, espe
 
     # 3. Popups 
     Popups_r <- reactive({
-        req(DataMap_r(), variable())
+        # req(DataMap_r()) bloquerait l'observeur si DataMap_r() est NULL
         data <- DataMap_r()
         sel_var <- variable()
-        if (sel_var == "distribution") return(NULL)
+        
+        if (is.null(data) || sel_var == "distribution") return(NULL)
         
         paste0('<iframe src="www/widgets/', sel_var, '/file_', data$pop_id, '.html" ',
                'width="419px" height="538px" frameborder="0"></iframe>')
@@ -221,9 +243,23 @@ mod_carte_op_server <- function(id, departement, bassin, periode, variable, espe
 
     # Mise à jour de la carte (Markers)
     observe({
+        # On récupère le proxy et on vide la carte IMMÉDIATEMENT
+        # avant tout appel à un réactif qui pourrait bloquer l'exécution via req()
+        proxy <- leaflet::leafletProxy("carte_op")
+        proxy |> leaflet::clearMarkers()
+
+        # Dépendances explicites pour forcer le déclenchement dès qu'un filtre change
+        # On les appelle APRÈS clearMarkers() pour garantir que la carte est vidée
+        # même si l'un d'eux est NULL ou bloque l'exécution
+        var <- variable()
+        per <- periode()
+        esp <- espece()
+        dept <- departement()
+        bass <- bassin()
+        
+        # Maintenant on récupère les données traitées
         data <- DataMap_r()
         popups <- Popups_r()
-        proxy <- leaflet::leafletProxy("carte_op") |> leaflet::clearMarkers()
         
         if (!is.null(data) && nrow(data) > 0) {
             proxy |> leaflet::addCircleMarkers(

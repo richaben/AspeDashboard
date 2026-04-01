@@ -37,31 +37,60 @@ mod_graphes_metriques_server <- function(id, variable, point, departement, bassi
   moduleServer( id, function(input, output, session){
     ns <- session$ns
     
-    output$graphe <- renderPlot({
+    # Données de base (Filtres spatiaux, variable & espèce - Arrow)
+    DataBase_r <- reactive({
         req(variable, point, bassin, departement)
         
         sel_var <- variable()
         sel_point <- point()
         sel_bassin <- bassin()
         sel_dept <- departement()
-        sel_per <- periode()
-        min_per <- min(sel_per)
-        max_per <- max(sel_per)
         sel_esp <- espece()
 
         # Si variable "distribution", l'espèce est requise
         if (sel_var == "distribution") req(sel_esp != "")
         
         if (sel_var != "distribution") {
+            if (is.null(sel_point)) return(NULL)
+            
+            res <- metriques |> 
+                dplyr::filter(
+                    variable == sel_var,
+                    pop_id == sel_point
+                ) |> 
+                dplyr::collect()
+        } else {
+            res <- captures |> 
+                dplyr::filter(
+                    dh_libelle %in% sel_bassin,
+                    dept_id %in% sel_dept
+                ) |> 
+                dplyr::collect()
+        }
+        gc()
+        res
+    })
+    
+    output$graphe <- renderPlot({
+        req(DataBase_r(), periode())
+        
+        sel_var <- variable()
+        sel_point <- point()
+        sel_per <- periode()
+        min_per <- min(sel_per)
+        max_per <- max(sel_per)
+        sel_esp <- espece()
+
+        # Filtrage par période sur les données en mémoire
+        data_filtered <- DataBase_r() |> 
+            dplyr::filter(
+                annee >= min_per,
+                annee <= max_per
+            )
+
+        if (sel_var != "distribution") {
             if (!is.null(sel_point)) {
-                SelectionMetriques <- metriques |> 
-                    dplyr::filter(
-                        variable == sel_var,
-                        pop_id == sel_point,
-                        annee >= min_per,
-                        annee <= max_per
-                    ) |> 
-                    dplyr::collect()
+                SelectionMetriques <- data_filtered
                 
                 if (nrow(SelectionMetriques) == 0) {
                     NULL
@@ -98,14 +127,7 @@ mod_graphes_metriques_server <- function(id, variable, point, departement, bassi
                 }
             }
         } else {
-            graphe <- captures |> 
-                dplyr::filter(
-                    dh_libelle %in% sel_bassin,
-                    dept_id %in% sel_dept,
-                    annee >= min_per,
-                    annee <= max_per
-                ) |> 
-                dplyr::collect() |> 
+            graphe <- data_filtered |> 
                 graphe_synthese_espece(
                 espece = sel_esp,
                 station = sel_point
