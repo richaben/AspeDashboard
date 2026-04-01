@@ -319,13 +319,15 @@ mod_carte_op_server <- function(id, departement, bassin, periode, variable, espe
                      p <- popup_peuplement(data_sta, pop_id_sel, pop_libelle_sel)
                      
                      # Sauvegarde dans un fichier temporaire accessible via addResourcePath
+                     # selfcontained = FALSE est beaucoup plus rapide car évite l'appel à pandoc
                      file_name <- paste0("popup_", pop_id_sel, ".html")
                      file_path <- file.path(temp_dir, file_name)
-                     htmlwidgets::saveWidget(p, file_path, selfcontained = TRUE)
+                     htmlwidgets::saveWidget(p, file_path, selfcontained = FALSE, libdir = "lib")
                      
                      # Modification directe du style CSS dans le fichier HTML (approche AspeDashboardData)
+                     # On ne passe que les espèces présentes pour accélérer le traitement
                      readLines(file_path, warn = FALSE) |> 
-                         ajuster_html() |> 
+                         ajuster_html(codes_especes_a_traiter = unique(data_sta$esp_code_alternatif)) |> 
                        writeLines(file_path)
                      
                      content <- paste0(
@@ -345,13 +347,15 @@ mod_carte_op_server <- function(id, departement, bassin, periode, variable, espe
                        p <- popup_ipr(data_sta, pop_id_sel, pop_libelle_sel, classe_ipr)
                        
                        # Sauvegarde dans un fichier temporaire accessible via addResourcePath
+                       # selfcontained = FALSE est beaucoup plus rapide car évite l'appel à pandoc
                        file_name <- paste0("popup_", pop_id_sel, ".html")
                        file_path <- file.path(temp_dir, file_name)
-                       htmlwidgets::saveWidget(p, file_path, selfcontained = TRUE)
+                       htmlwidgets::saveWidget(p, file_path, selfcontained = FALSE, libdir = "lib")
                        
                        # Modification directe du style CSS dans le fichier HTML (approche AspeDashboardData)
+                       # Pas d'espèces à traiter pour l'IPR
                        readLines(file_path, warn = FALSE) |> 
-                           ajuster_html() |> 
+                           ajuster_html(codes_especes_a_traiter = character(0)) |> 
                          writeLines(file_path)
                        
                        content <- paste0(
