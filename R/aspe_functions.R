@@ -137,10 +137,11 @@ gg_temp_peuplement_local <- function(df,
       ) +
       ggplot2::theme(
         axis.text.y = ggplot2::element_text(size = 8),
-        panel.background = ggplot2::element_rect(fill='grey95'),
+        panel.background = ggplot2::element_blank(),
+        panel.grid.major.y = ggplot2::element_line(colour = "grey75", linewidth = .25, linetype = "dotted"),
         #strip.text = element_text(size = 11,color="white",face = "bold"),
         strip.background = ggplot2::element_rect(color = "black", fill = "grey30"),
-        legend.position = 'right',
+        legend.position = 'none',
         legend.text = ggplot2::element_text(size = 8),
         legend.title = ggplot2::element_text(size = 8),
         axis.text.x = ggplot2::element_text(angle = 0, hjust = 0.5, size=9)
@@ -183,7 +184,7 @@ gg_temp_peuplement_local <- function(df,
         panel.background = element_rect(fill = 'grey95'),
         strip.text = element_text(size = 11, color = "white", face = "bold"),
         strip.background = element_rect(color = "black", fill = "grey30"),
-        legend.position = 'bottom',
+        legend.position = 'none',
         legend.text = element_text(size = 9),
         legend.title = element_text(size = 9),
         axis.text.x = element_text(angle = 0, hjust = 0.5, size = 9),
@@ -412,7 +413,7 @@ gg_temp_ipr_local <- function(df_ipr,
                                                    fill = df_classes$classe_couleur,
                                                    shape = 15,
                                                    alpha = 0.6))) +
-    ggplot2::theme(legend.position = "bottom",
+    ggplot2::theme(legend.position = "none",
           strip.text = ggplot2::element_text(
             size = 12, face = "bold", hjust = 0
           ),
