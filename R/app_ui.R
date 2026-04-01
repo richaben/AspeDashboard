@@ -34,6 +34,8 @@ app_ui <- function(request) {
           textOutput("date_export"),
           style = "position:absolute; top:30; left:10;"
       ),
+      # Dummy output to force ggiraph dependencies
+      div(ggiraph::girafeOutput("dummy", width = "0px", height = "0px"), style = "display:none;"),
       sidebarLayout(
         sidebarPanel = sidebarPanel(
           width = 2,

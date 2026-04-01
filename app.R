@@ -19,11 +19,5 @@ AspeDashboard::run_app(
         if (file.exists("inst/app/data/metadata.rda")) {
             load("inst/app/data/metadata.rda", envir = .GlobalEnv)
         } 
-        # Décompression des widgets au démarrage si nécessaire
-        if (!dir.exists("inst/app/www/widgets/especes"))
-            utils::untar("inst/app/www/widgets/especes.tar")
-        
-        if (!dir.exists("inst/app/www/widgets/ipr"))
-            utils::untar("inst/app/www/widgets/ipr.tar")
     }
 ) # add parameters here (if any)

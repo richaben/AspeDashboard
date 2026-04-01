@@ -94,7 +94,8 @@ mod_carte_op_ui <- function(id){
 #' @importFrom sf st_bbox
 #' @importFrom shiny HTML moduleServer reactiveValues reactive observeEvent req updateSelectizeInput observe renderPlot
 #' @importFrom tidyr drop_na
-mod_carte_op_server <- function(id, departement, bassin, periode, variable, espece){
+#' @importFrom htmlwidgets saveWidget
+mod_carte_op_server <- function(id, departement, bassin, periode, variable, espece, temp_dir){
   moduleServer(
     id, 
     function(input, output, session){
@@ -229,18 +230,6 @@ mod_carte_op_server <- function(id, departement, bassin, periode, variable, espe
         ))
     })
 
-    # 3. Popups 
-    Popups_r <- reactive({
-        # req(DataMap_r()) bloquerait l'observeur si DataMap_r() est NULL
-        data <- DataMap_r()
-        sel_var <- variable()
-        
-        if (is.null(data) || sel_var == "distribution") return(NULL)
-        
-        paste0('<iframe src="www/widgets/', sel_var, '/file_', data$pop_id, '.html" ',
-               'width="419px" height="538px" frameborder="0"></iframe>')
-    })
-
     # Mise à jour de la carte (Markers)
     observe({
         # On récupère le proxy et on vide la carte IMMÉDIATEMENT
@@ -259,17 +248,109 @@ mod_carte_op_server <- function(id, departement, bassin, periode, variable, espe
         
         # Maintenant on récupère les données traitées
         data <- DataMap_r()
-        popups <- Popups_r()
         
         if (!is.null(data) && nrow(data) > 0) {
             proxy |> leaflet::addCircleMarkers(
                 data = data, layerId = ~pop_id, radius = ~radius_pal(nb_annees),
                 fillColor = ~identity(couleur), stroke = TRUE, color = "black", weight = 2,
                 opacity = ~identity(opacite), fillOpacity = .75,
-                label = ~lapply(hover, shiny::HTML), popup = popups,
-                popupOptions = leaflet::popupOptions(maxWidth = 400, minWidth = 300)
+                label = ~lapply(hover, shiny::HTML)
             ) 
         }
+    })
+
+    # Génération dynamique des popups lors du clic
+    observeEvent(input$carte_op_marker_click, {
+        marker <- input$carte_op_marker_click
+        pop_id_sel <- marker$id
+        sel_var <- variable()
+        
+        # Pas de popup pour la distribution pour le moment
+        if (sel_var == "distribution") return()
+        
+        # Affichage d'un indicateur de chargement
+        shiny::showNotification("Génération du graphique...", duration = 2, type = "message", id = "popup_loading")
+        
+        content <- NULL
+        tryCatch({
+             if (sel_var == "especes") {
+                 # Filtrage via Arrow pour ne pas tout charger
+                 data_sta <- captures |> 
+                     dplyr::filter(pop_id == pop_id_sel) |> 
+                     dplyr::collect()
+                 
+                 if (nrow(data_sta) > 0) {
+                     pop_libelle_sel <- data_sta$pop_libelle[1]
+                     p <- popup_peuplement(data_sta, pop_id_sel, pop_libelle_sel)
+                     
+                     # Sauvegarde dans un fichier temporaire accessible via addResourcePath
+                     file_name <- paste0("popup_", pop_id_sel, ".html")
+                     file_path <- file.path(temp_dir, file_name)
+                     htmlwidgets::saveWidget(p, file_path, selfcontained = TRUE)
+                     
+                     # Modification directe du style CSS dans le fichier HTML (approche AspeDashboardData)
+                     html_content <- readLines(file_path, warn = FALSE) |> 
+                         paste(collapse = "\n") |> 
+                         stringr::str_replace_all(
+                             pattern = 'el.style.width = "100%";', 
+                             replacement = "el.style.width = auto;"
+                         ) |> 
+                         stringr::str_replace_all(
+                             pattern = 'el.style.height = "100%";', 
+                             replacement = "el.style.height = auto;"
+                         )
+                     writeLines(html_content, file_path)
+                     
+                     content <- paste0(
+                           '<iframe src="temp_popups/', file_name, '" ',
+                           'width="370px" height="515px" style="border:none;"></iframe>'
+                       )
+                   }
+               } else if (sel_var == "ipr") {
+                   data_sta <- ipr |> 
+                       dplyr::filter(pop_id == pop_id_sel) |> 
+                       dplyr::collect()
+                   
+                   if (nrow(data_sta) > 0) {
+                       pop_libelle_sel <- data_sta$pop_libelle[1]
+                       # On suppose classe_ipr disponible globalement
+                       p <- popup_ipr(data_sta, pop_id_sel, pop_libelle_sel, classe_ipr)
+                       
+                       # Sauvegarde dans un fichier temporaire accessible via addResourcePath
+                       file_name <- paste0("popup_", pop_id_sel, ".html")
+                       file_path <- file.path(temp_dir, file_name)
+                       htmlwidgets::saveWidget(p, file_path, selfcontained = TRUE)
+                       
+                       # Modification directe du style CSS dans le fichier HTML (approche AspeDashboardData)
+                       html_content <- readLines(file_path, warn = FALSE) |> 
+                           paste(collapse = "\n") |> 
+                           stringr::str_replace_all(
+                               pattern = "width:\\d*px;height:\\d*px;", 
+                               replacement = "width:auto;height:auto;"
+                           )
+                       writeLines(html_content, file_path)
+                       
+                       content <- paste0(
+                           '<iframe src="temp_popups/', file_name, '" ',
+                           'width="370px" height="515px" style="border:none;"></iframe>'
+                       )
+                   }
+               }
+ 
+                if (!is.null(content)) {
+                    leaflet::leafletProxy("carte_op") |> 
+                        leaflet::addPopups(
+                            lng = marker$lng, 
+                            lat = marker$lat, 
+                            popup = content,
+                            options = leaflet::popupOptions(maxWidth = 400, minWidth = 370)
+                        )
+                }
+          }, error = function(e) {
+            shiny::showNotification(paste("Erreur lors de la génération du popup :", e$message), type = "error")
+        })
+        
+        shiny::removeNotification("popup_loading")
     })
 
     # Zoom & Emprise
