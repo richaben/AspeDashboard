@@ -1,0 +1,37 @@
+name: Mise à jour hebdomadaire AspeDashboard
+
+on:
+  schedule:
+    - cron: '0 0 * * 0'  # Chaque dimanche à 0h UTC 
+  workflow_dispatch:  # Permet un déclenchement manuel
+
+jobs:
+  update-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      RSCONNECT_USER: ${{ secrets.RSCONNECT_USER }}
+      RSCONNECT_TOKEN: ${{ secrets.RSCONNECT_TOKEN }}
+      RSCONNECT_SECRET: ${{ secrets.RSCONNECT_SECRET }}
+      DROPBOX_TOKEN_BASE64: ${{ secrets.DROPBOX_TOKEN_BASE64 }}
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Exécuter le script de mise à jour dans Docker
+      run: |
+          docker run --volume ${{ github.workspace}}:/workspace --workdir /workspace ofbidf/r_prr_onde:latest bash -c "
+          Rscript data-raw/prep_data_app.R
+          "
+
+    - name: Commit et push des données mises à jour
+      uses: stefanzweifel/git-auto-commit-action@v5
+      with:
+        commit_message: "Mise à jour données mensuelle: hubeau, sandre, metadata ({{ github.run_id }})"
+        file_pattern: |
+          data-raw/data_hubeau.rda
+          data-raw/data_sandre.rda
+          inst/app/data/metadata.rda
+        commit_user_name: "github-actions[bot]"
+        commit_user_email: "github-actions[bot]@users.noreply.github.com"

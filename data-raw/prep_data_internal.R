@@ -101,15 +101,19 @@ administratif <- COGiter::departements |>
 #         purrr::list_rbind()
 # )
 
-library(aspe)
+ref_espece <- aspe::ref_espece
 classe_ipr <- aspe::classe_ipr |>
     aspe::ip_completer_classes_couleur()
+
+codes_especes <- aspe::ref_espece$esp_code_taxref |> 
+    purrr::set_names(aspe::ref_espece$esp_code_alternatif)
 
 usethis::use_data(
     administratif,
     # emprises, 
     classe_ipr,
     ref_espece,
+    codes_especes,
     overwrite = TRUE,
     internal = TRUE
 )

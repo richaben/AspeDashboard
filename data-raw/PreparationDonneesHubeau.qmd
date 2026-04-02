@@ -20,7 +20,7 @@ pak::pkg_install(c(
 # library(aspe)
 
 download_sandre <- FALSE
-download_hubeau <- FALSE
+download_hubeau <- TRUE
 ```
 
 
@@ -37,7 +37,7 @@ if (download_sandre) {
 }
 
 if (download_hubeau) {
-  dept_test <- 94 # choisir un petit département à des fins de test (e.g. 93)
+  dept_test <- NULL # choisir un petit département à des fins de test (e.g. 93)
   
 
   maj <- file.exists("data_hubeau.rda")
