@@ -8,7 +8,6 @@
 dev
 man
 rsconnect/shinyapps.io/ofbidf/AspeDashboard.dcf
-inst/app/data/
 dropbox_token.rds
 inst/app/www/style.css
 logs/

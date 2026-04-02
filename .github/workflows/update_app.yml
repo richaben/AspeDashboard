@@ -14,17 +14,21 @@ jobs:
       RSCONNECT_USER: ${{ secrets.RSCONNECT_USER }}
       RSCONNECT_TOKEN: ${{ secrets.RSCONNECT_TOKEN }}
       RSCONNECT_SECRET: ${{ secrets.RSCONNECT_SECRET }}
-      DROPBOX_TOKEN_BASE64: ${{ secrets.DROPBOX_TOKEN_BASE64 }}
 
     steps:
     - uses: actions/checkout@v4
 
     - name: Exécuter le script de mise à jour dans Docker
       run: |
-          docker run --volume ${{ github.workspace}}:/workspace --workdir /workspace ofbidf/r_prr_onde:latest bash -c "
+        docker run --volume ${{ github.workspace}}:/workspace \
+                   --workdir /workspace \
+                   -e RSCONNECT_USER="${{ secrets.RSCONNECT_USER }}" \
+                   -e RSCONNECT_TOKEN="${{ secrets.RSCONNECT_TOKEN }}" \
+                   -e RSCONNECT_SECRET="${{ secrets.RSCONNECT_SECRET }}" \
+                   ofbidf/r_prr_onde:latest bash -c "
           Rscript data-raw/prep_data_app.R
-          "
-
+        "
+        
     - name: Commit et push des données mises à jour
       uses: stefanzweifel/git-auto-commit-action@v5
       with:

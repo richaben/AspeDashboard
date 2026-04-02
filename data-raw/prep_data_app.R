@@ -20,8 +20,13 @@ if (download_sandre) {
 
 if (download_hubeau) {
     dept_test <- NULL # choisir un petit département à des fins de test (e.g. 93)
+    if (file.exists("inst/app/data/metadata.rda")) {
+        load("inst/app/data/metadata.rda")
+    } else {
+        date_export = NULL
+    }
     
-    codes_stations <- AspeDashboardData::get_data_hubeau(code_departement = dept_test, data_file = "data-raw/data_hubeau.rda")
+    codes_stations <- AspeDashboardData::get_data_hubeau(code_departement = dept_test, data_file = "data-raw/data_hubeau.rda", last_export = date_export)
     
     if (length(codes_stations) == 0) maj <- FALSE
 }
@@ -37,8 +42,8 @@ if (maj) {
     rsconnect::deployApp(
         appName = "AspeDashboard",
         appTitle = "AspeDashboard",
-        account = Sys.getenv("RSCONNECT_USER"),
-        server = "shinyapps.io"
+        server = "shinyapps.io",
+        forceUpdate = TRUE
     )
 }
 
