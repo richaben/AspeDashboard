@@ -30,17 +30,17 @@ if (download_hubeau) {
 if (maj) {
     AspeDashboardData::prep_data_dashboard("data-raw/data_sandre.rda", "data-raw/data_hubeau.rda", data_dashboard = "inst/app/data", draw_legend = FALSE)
     
-    rsconnect::setAccountInfo(
-        name = Sys.getenv("RSCONNECT_USER"),
-        token = Sys.getenv("RSCONNECT_TOKEN"),
-        secret = Sys.getenv("RSCONNECT_SECRET")
-    )
-    rsconnect::deployApp(
-        appName = "AspeDashboard",
-        appTitle = "AspeDashboard",
-        server = "shinyapps.io",
-        forceUpdate = TRUE
-    )
+    # rsconnect::setAccountInfo(
+    #     name = Sys.getenv("RSCONNECT_USER"),
+    #     token = Sys.getenv("RSCONNECT_TOKEN"),
+    #     secret = Sys.getenv("RSCONNECT_SECRET")
+    # )
+    # rsconnect::deployApp(
+    #     appName = "AspeDashboard",
+    #     appTitle = "AspeDashboard",
+    #     server = "shinyapps.io",
+    #     forceUpdate = TRUE
+    # )
 }
 
 

@@ -1,1 +1,8 @@
 data-raw
+dev
+inst/app/data/captures.parquet
+inst/app/data/carte_operations.parquet
+inst/app/data/ipr.parquet
+inst/app/data/metadata.rda
+inst/app/data/metriques.parquet
+inst/app/data/pop_geo.parquet
