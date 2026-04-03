@@ -1,12 +1,15 @@
 if (!require(pak)) install.packages("pak")
 
 pak::pkg_install(c(
-    "ragg",
-    "MaelTheuliere/COGiter",
+    "ragg", "RcppDate", "RcppEigen",
+    "config", "golem", "spelling", 
+    "shiny.semantic", "shinydashboardPlus",
+    "krlmlr/plogr", "MaelTheuliere/COGiter",
     "PascalIrz/aspe",
     "karthik/rdrop2",
     "dreamRs/shinylogs",
     "OFB-IdF/templatesOFB",
+    "OFB-IdF/AspeDashboard",
     "OFB-IdF/AspeDashboardData"
 ))
 
