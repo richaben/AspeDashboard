@@ -5,10 +5,13 @@
 .Rdata
 .httr-oauth
 .DS_Store
-dev
 man
 rsconnect/shinyapps.io/ofbidf/AspeDashboard.dcf
 dropbox_token.rds
 inst/app/www/style.css
 logs/
 data-raw/data_hubeau.rda
+
+data-raw/CopyOfdata_hubeau.rda
+
+data-raw/data_hubeau_bkp.rda
