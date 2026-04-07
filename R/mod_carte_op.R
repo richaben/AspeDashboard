@@ -303,10 +303,14 @@ mod_carte_op_server <- function(id, departement, bassin, periode, variable, espe
         }
     })
 
+
     # Fonction utilitaire pour générer le contenu de la popup
-    generer_contenu_popup <- function(pop_id_sel, sel_var) {
+    generer_contenu_popup <- function(pop_id_sel, sel_var, temp_dir) {
         if (is.null(pop_id_sel) || sel_var == "distribution") return(NULL)
         
+      file_name <- paste0(session$token, "_popup_", pop_id_sel, ".html")
+      file_path <- file.path(temp_dir, file_name)
+
         content <- NULL
         tryCatch({
              if (sel_var == "especes") {
@@ -321,8 +325,6 @@ mod_carte_op_server <- function(id, departement, bassin, periode, variable, espe
                      
                      # Sauvegarde dans un fichier temporaire accessible via addResourcePath
                      # selfcontained = FALSE est beaucoup plus rapide car évite l'appel à pandoc
-                     file_name <- paste0("popup_", pop_id_sel, ".html")
-                     file_path <- file.path(temp_dir, file_name)
                      htmlwidgets::saveWidget(p, file_path, selfcontained = FALSE, libdir = "lib")
                      
                      # Modification directe du style CSS dans le fichier HTML (approche AspeDashboardData)
@@ -332,7 +334,7 @@ mod_carte_op_server <- function(id, departement, bassin, periode, variable, espe
                        writeLines(file_path)
                      
                      content <- paste0(
-                           '<iframe src="temp_popups/', file_name, '" ',
+                           '<iframe src="www/popups/', file_name, '" ',
                            'width="341px" height="475px" style="border:none; overflow:hidden;" ',
                            'scrolling="no"></iframe>'
                        )
@@ -348,9 +350,6 @@ mod_carte_op_server <- function(id, departement, bassin, periode, variable, espe
                        p <- popup_ipr(data_sta, pop_id_sel, pop_libelle_sel, classe_ipr)
                        
                        # Sauvegarde dans un fichier temporaire accessible via addResourcePath
-                       # selfcontained = FALSE est beaucoup plus rapide car évite l'appel à pandoc
-                       file_name <- paste0("popup_", pop_id_sel, ".html")
-                       file_path <- file.path(temp_dir, file_name)
                        htmlwidgets::saveWidget(p, file_path, selfcontained = FALSE, libdir = "lib")
                        
                        # Modification directe du style CSS dans le fichier HTML (approche AspeDashboardData)
@@ -360,11 +359,11 @@ mod_carte_op_server <- function(id, departement, bassin, periode, variable, espe
                          writeLines(file_path)
                        
                        content <- paste0(
-                            '<iframe src="temp_popups/', file_name, '" ',
-                            'width="341px" height="475px" style="border:none; overflow:hidden;" ',
-                            'scrolling="no"></iframe>'
-                        )
-                    }
+                         '<iframe src="www/popups/', file_name, '" ',
+                         'width="341px" height="475px" style="border:none; overflow:hidden;" ',
+                         'scrolling="no"></iframe>'
+                       )
+                   }
                 }
         }, error = function(e) {
             shiny::showNotification(paste("Erreur lors de la génération du popup :", e$message), type = "error")
@@ -419,7 +418,7 @@ mod_carte_op_server <- function(id, departement, bassin, periode, variable, espe
         # On utilise shiny::onFlushed pour s'assurer que le popup de chargement 
         # est bien envoyé au navigateur avant de commencer le calcul lourd
         session$onFlushed(function() {
-            content <- generer_contenu_popup(pop_id_sel, sel_var)
+            content <- generer_contenu_popup(pop_id_sel, sel_var, temp_dir)
             
             if (!is.null(content)) {
                 proxy |> 

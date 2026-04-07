@@ -30,19 +30,6 @@ app_server <- function( input, output, session ) {
     #         )
     # })
 
-    # Création d'un répertoire temporaire pour les popups dynamiques
-    # et ajout d'un chemin de ressource pour y accéder via le navigateur
-    temp_popup_dir <- tempfile("popups")
-    dir.create(temp_popup_dir, showWarnings = FALSE)
-    shiny::addResourcePath("temp_popups", temp_popup_dir)
-    cat(temp_popup_dir)
-    cat("\n")
-    
-    # Nettoyage à la fin de la session
-    session$onSessionEnded(function() {
-        unlink(temp_popup_dir, recursive = TRUE)
-    })
-    
     SelectionBassin <- mod_selecteur_bassin_server(
         id = "bassin"
     )
@@ -70,7 +57,7 @@ app_server <- function( input, output, session ) {
       variable = SelectionVariable,
       espece = SelectionEspece,
       periode = SelectionPeriode,
-      temp_dir = temp_popup_dir
+      temp_dir = file.path("inst", "app", "www", "popups")
   )
 
     mod_panneau_droit_server(

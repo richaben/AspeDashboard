@@ -20,5 +20,14 @@ AspeDashboard::run_app(
         pop_geo_df <<- arrow::open_dataset("inst/app/data/pop_geo.parquet")
         
         load("inst/app/data/metadata.rda", envir = .GlobalEnv)
+        
+        popups_base_dir <- file.path("inst", "app", "www", "popups")  
+        dir.create(popups_base_dir, showWarnings = FALSE, recursive = TRUE)
+        
+        onStop(
+            function() {
+                unlink(popups_base_dir, recursive = TRUE, force = TRUE)
+            }
+        )
     }
 ) # add parameters here (if any)
