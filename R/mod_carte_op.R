@@ -259,19 +259,29 @@ mod_carte_op_server <- function(id, departement, bassin, periode, variable, espe
             data_processed,
             by = "pop_id"
         ) |>
+          dplyr::rowwise() |> 
         dplyr::mutate(hover = paste0(
             "<b>", sta_libelle_sandre, " (", sta_code_sandre, ")</b><br>",
             "<em>", dept_libelle, " (", reg_libelle, ")</em><br>",
             nb_annees, " année", ifelse(as.numeric(nb_annees) > 1 , "s", ""),
             ifelse(sel_var == "distribution", " de détection", " de suivi"),
             "<br>",
-            dplyr::case_when(
-                sel_var == "especes" ~ paste0(valeur, " espèce", ifelse(as.numeric(valeur) > 1, "s", "")),
-                sel_var == "ipr" ~ paste0(valeur, " état"),
-                sel_var == "distribution" ~ paste0("Densité moyenne: ", valeur)
-            ),
+            if (sel_var == "especes") {
+              paste0(valeur, " espèce", ifelse(as.numeric(valeur) > 1, "s", ""))
+              } else {
+                if (sel_var == "ipr") {
+                  paste0(valeur, " état")
+                } else {
+                  if (sel_var == "distribution") {
+                    paste0("Densité moyenne: ", valeur)
+                  } else {
+                    NULL
+                  }
+                }
+              },
             ifelse(sel_var == "distribution", "", paste0(" (", annee, ")"))
-        ))
+        )) |> 
+          dplyr::ungroup()
     })
 
     # Mise à jour de la carte (Markers)
