@@ -26,7 +26,16 @@ AspeDashboard::run_app(
         
         onStop(
             function() {
-                unlink(popups_base_dir, recursive = TRUE, force = TRUE)
+                popups_dir <- list.dirs(path = popups_base_dir, full.names = TRUE, recursive = FALSE)
+                popups_dir <- popups_dir[!stringr::str_detect(string = popups_dir, pattern = file.path(popups_base_dir, "lib"))]
+                purrr::walk(
+                    popups_dir,
+                    unlink, force = TRUE, recursive = TRUE
+                )
+                purrr::walk(
+                    list.files(path = popups_base_dir, pattern = ".html", full.names = TRUE),
+                    unlink, force = TRUE
+                )
             }
         )
     }

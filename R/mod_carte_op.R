@@ -137,7 +137,7 @@ mod_carte_op_ui <- function(id){
 #' @importFrom shiny HTML moduleServer reactiveValues reactive observeEvent req updateSelectizeInput observe renderPlot
 #' @importFrom tidyr drop_na
 #' @importFrom htmlwidgets saveWidget
-mod_carte_op_server <- function(id, departement, bassin, periode, variable, espece, temp_dir){
+mod_carte_op_server <- function(id, departement, bassin, periode, variable, espece, temp_dir, session_id){
   moduleServer(
     id, 
     function(input, output, session){
@@ -318,7 +318,7 @@ mod_carte_op_server <- function(id, departement, bassin, periode, variable, espe
     generer_contenu_popup <- function(pop_id_sel, sel_var, temp_dir) {
         if (is.null(pop_id_sel) || sel_var == "distribution") return(NULL)
         
-      file_name <- paste0(session$token, "_popup_", pop_id_sel, ".html")
+      file_name <- paste0(session_id, "_popup_", pop_id_sel, ".html")
       file_path <- file.path(temp_dir, file_name)
 
         content <- NULL
@@ -332,10 +332,16 @@ mod_carte_op_server <- function(id, departement, bassin, periode, variable, espe
                  if (nrow(data_sta) > 0) {
                      pop_libelle_sel <- data_sta$pop_libelle[1]
                      p <- popup_peuplement(data_sta, pop_id_sel, pop_libelle_sel)
-                     
+                     p$dependencies <- lapply(
+                       p$dependencies, function(dep) {
+                         dep$src$href <- "lib"
+                         dep$src$file <- NULL
+                         dep
+                       }
+                     )
                      # Sauvegarde dans un fichier temporaire accessible via addResourcePath
                      # selfcontained = FALSE est beaucoup plus rapide car évite l'appel à pandoc
-                     htmlwidgets::saveWidget(p, file_path, selfcontained = FALSE, libdir = "lib")
+                     htmlwidgets::saveWidget(p, file_path, selfcontained = FALSE)
                      
                      # Modification directe du style CSS dans le fichier HTML (approche AspeDashboardData)
                      # On ne passe que les espèces présentes pour accélérer le traitement
@@ -358,9 +364,16 @@ mod_carte_op_server <- function(id, departement, bassin, periode, variable, espe
                        pop_libelle_sel <- data_sta$pop_libelle[1]
                        # On suppose classe_ipr disponible globalement
                        p <- popup_ipr(data_sta, pop_id_sel, pop_libelle_sel, classe_ipr)
+                       p$dependencies <- lapply(
+                         p$dependencies, function(dep) {
+                           dep$src$href <- "lib"
+                           dep$src$file <- NULL
+                           dep
+                         }
+                       )
                        
                        # Sauvegarde dans un fichier temporaire accessible via addResourcePath
-                       htmlwidgets::saveWidget(p, file_path, selfcontained = FALSE, libdir = "lib")
+                       htmlwidgets::saveWidget(p, file_path, selfcontained = FALSE)
                        
                        # Modification directe du style CSS dans le fichier HTML (approche AspeDashboardData)
                        # Pas d'espèces à traiter pour l'IPR

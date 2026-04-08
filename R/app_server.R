@@ -29,7 +29,7 @@ app_server <- function( input, output, session ) {
     #             }
     #         )
     # })
-
+  
     SelectionBassin <- mod_selecteur_bassin_server(
         id = "bassin"
     )
@@ -57,7 +57,8 @@ app_server <- function( input, output, session ) {
       variable = SelectionVariable,
       espece = SelectionEspece,
       periode = SelectionPeriode,
-      temp_dir = file.path("inst", "app", "www", "popups")
+      temp_dir = file.path("inst", "app", "www", "popups"),
+      session_id = session$token
   )
 
     mod_panneau_droit_server(
