@@ -67,6 +67,10 @@ app_ui <- function(request) {
             #   title = "Bilan détaillé"
             #   ),
             tabPanel(
+              title = "Liste des espèces",
+              mod_liste_especes_ui(id = "liste_especes")
+            ),
+            tabPanel(
               title = p(
                 class = "TabMethode",
                 "Données & Traitements"

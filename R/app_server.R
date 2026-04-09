@@ -71,6 +71,10 @@ app_server <- function( input, output, session ) {
         espece = SelectionEspece
     )
     
+    mod_liste_especes_server(
+      id = "liste_especes"
+    )
+    
     output$date_export <- renderText(paste0("Export: ", as.character(date_export)))
 
 }
