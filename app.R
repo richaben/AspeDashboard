@@ -6,22 +6,48 @@ pkgload::load_all(export_all = FALSE,helpers = FALSE,attach_testthat = FALSE)
 options( "golem.app.prod" = TRUE)
 AspeDashboard::run_app(
     onStart = function() {
-        download.file("https://github.com/OFB-IdF/AspeDashboard/raw/refs/heads/main/inst/app/data/captures.parquet", destfile = "inst/app/data/captures.parquet", mode = "wb")
-        download.file("https://github.com/OFB-IdF/AspeDashboard/raw/refs/heads/main/inst/app/data/ipr.parquet", destfile = "inst/app/data/ipr.parquet", mode = "wb")
-        download.file("https://github.com/OFB-IdF/AspeDashboard/raw/refs/heads/main/inst/app/data/carte_operations.parquet", destfile = "inst/app/data/carte_operations.parquet", mode = "wb")
-        download.file("https://github.com/OFB-IdF/AspeDashboard/raw/refs/heads/main/inst/app/data/metriques.parquet", destfile = "inst/app/data/metriques.parquet", mode = "wb")
-        download.file("https://github.com/OFB-IdF/AspeDashboard/raw/refs/heads/main/inst/app/data/pop_geo.parquet", destfile = "inst/app/data/pop_geo.parquet", mode = "wb")
-        download.file("https://github.com/OFB-IdF/AspeDashboard/raw/refs/heads/main/inst/app/data/metadata.rda", destfile = "inst/app/data/metadata.rda", mode = "wb")
+        dest_dir <- system.file("app/data", package = "AspeDashboard")
         
-        captures <<- arrow::open_dataset("inst/app/data/captures.parquet")
-        ipr <<- arrow::open_dataset("inst/app/data/ipr.parquet")
-        carte_operations <<- arrow::open_dataset("inst/app/data/carte_operations.parquet")
-        metriques <<- arrow::open_dataset("inst/app/data/metriques.parquet")
-        pop_geo_df <<- arrow::open_dataset("inst/app/data/pop_geo.parquet")
+        download.file(
+            url = "https://github.com/OFB-IdF/AspeDashboard/raw/refs/heads/main/inst/app/data/captures.parquet", 
+            destfile = file.path(dest_dir, "captures.parquet"),
+            mode = "wb"
+            )
+        download.file(
+            url = "https://github.com/OFB-IdF/AspeDashboard/raw/refs/heads/main/inst/app/data/ipr.parquet", 
+            destfile = file.path(dest_dir, "ipr.parquet"),
+            mode = "wb"
+            )
+        download.file(
+            url = "https://github.com/OFB-IdF/AspeDashboard/raw/refs/heads/main/inst/app/data/carte_operations.parquet", 
+            destfile = file.path(dest_dir, "carte_operations.parquet"),
+            mode = "wb"
+            )
+        download.file(
+            url = "https://github.com/OFB-IdF/AspeDashboard/raw/refs/heads/main/inst/app/data/metriques.parquet", 
+            destfile = file.path(dest_dir, "metriques.parquet"),
+            mode = "wb"
+            )
+        download.file(
+            url = "https://github.com/OFB-IdF/AspeDashboard/raw/refs/heads/main/inst/app/data/pop_geo.parquet", 
+            destfile = file.path(dest_dir, "pop_geo.parquet"),
+            mode = "wb"
+            )
+        download.file(
+            url = "https://github.com/OFB-IdF/AspeDashboard/raw/refs/heads/main/inst/app/data/metadata.rda", 
+            destfile = file.path(dest_dir, "metadata.rda"),
+            mode = "wb"
+            )
         
-        load("inst/app/data/metadata.rda", envir = .GlobalEnv)
+        captures <<- arrow::open_dataset(file.path(dest_dir, "captures.parquet"))
+        ipr <<- arrow::open_dataset(file.path(dest_dir, "ipr.parquet"))
+        carte_operations <<- arrow::open_dataset(file.path(dest_dir, "carte_operations.parquet"))
+        metriques <<- arrow::open_dataset(file.path(dest_dir, "metriques.parquet"))
+        pop_geo_df <<- arrow::open_dataset(file.path(dest_dir, "pop_geo.parquet"))
         
-        popups_base_dir <- file.path("inst", "app", "www", "popups")  
+        load(file.path(dest_dir, "metadata.rda"), envir = .GlobalEnv)
+        
+        popups_base_dir <- file.path(system.file("app/www", package = "AspeDashboard"), "popups")  
         dir.create(popups_base_dir, showWarnings = FALSE, recursive = TRUE)
         
         onStop(
